@@ -63,20 +63,25 @@ def require_marketing():
 
 
 # ---------------------------------------------------------------------------
-# Routes
+# Marketing home — called directly from the main app's "/" route so that
+# path-based club routing (/sample1/ → Flask "/") doesn't conflict.
 # ---------------------------------------------------------------------------
 
-@bp.route("/")
-def index():
+def render_index():
     early_bird = _is_early_bird()
     return render_template(
-        "index.html",
+        "marketing/index.html",
         early_bird=early_bird,
         early_bird_deadline=EARLY_BIRD_DEADLINE.strftime("%B %-d, %Y"),
         tier_prices=TIER_PRICES,
         extra_craft_cents=EXTRA_CRAFT_CENTS,
         early_bird_pct=EARLY_BIRD_PCT,
     )
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 
 @bp.route("/pricing")

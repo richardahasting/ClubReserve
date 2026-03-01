@@ -105,6 +105,8 @@ def register_routes(app: Flask):
 
     @app.route("/")
     def index():
+        if getattr(g, "is_marketing", False):
+            return marketing_module.render_index()
         return redirect(url_for("calendar"))
 
     # -- Auth ------------------------------------------------------------
