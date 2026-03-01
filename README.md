@@ -87,8 +87,9 @@ On first start:
 
 1. Log in at `/superadmin` (default credentials set in `init_master_db.sql`)
 2. Create a new club — choose short name (used for subdomain and DB name) and vehicle type
-3. Add `DB_PASS_CLUB_<SHORTNAME>_USER=<password>` to `.env` and restart `web`
-4. Navigate to `<shortname>.yourdomain.com` and log in as the club admin
+3. Navigate to `<shortname>.yourdomain.com` — the club is live immediately, no restart needed
+4. The club contact receives a welcome email with a one-time set-password link
+5. Log in as the club admin and set a secure password when prompted on first login
 
 ### Local Dev (Single Club)
 
@@ -237,6 +238,60 @@ FleetNests/
 ```
 
 Both scripts load `.env` via `python-dotenv` and connect directly to PostgreSQL.
+
+---
+
+## Testing
+
+### Setup
+
+Create two PostgreSQL databases and a shared test user:
+
+```sql
+CREATE USER fn_test_user WITH PASSWORD 'FnTest2026!';
+CREATE DATABASE fleetnests_test_master OWNER fn_test_user;
+CREATE DATABASE fleetnests_test_club   OWNER fn_test_user;
+GRANT ALL ON DATABASE fleetnests_test_master TO fn_test_user;
+GRANT ALL ON DATABASE fleetnests_test_club   TO fn_test_user;
+```
+
+Apply the schemas:
+
+```bash
+psql -U fn_test_user -d fleetnests_test_master -f init_master_db.sql
+psql -U fn_test_user -d fleetnests_test_club   -f init_club_db.sql
+```
+
+### Running Tests
+
+```bash
+./run_tests.sh              # all 178 tests
+./run_tests.sh tests/test_models.py       # single file
+./run_tests.sh -k "waitlist"              # matching test names
+./run_tests.sh --cov --cov-report=term    # with coverage report
+```
+
+### Test Coverage
+
+| File | What's tested |
+|------|--------------|
+| `test_schema.py` | All tables and critical columns exist in both DBs |
+| `test_auth.py` | Password hashing, bcrypt roundtrip, session helpers, decorators |
+| `test_club_resolver.py` | Subdomain parsing, DSN priority (env → master DB → DATABASE_URL), cache |
+| `test_email.py` | All notification functions with SMTP mocked; disabled-email guards |
+| `test_master_db.py` | Club/order/super-admin CRUD, vehicle templates, provisioning helpers |
+| `test_models.py` | Reservations, users, password tokens, messages, blackouts, waitlist, settings |
+| `test_routes_public.py` | Login (username + email), logout, changeme redirect, password reset flow |
+| `test_routes_member.py` | Calendar API, reservation creation/cancellation, profile, messages, iCal |
+| `test_routes_admin.py` | User management, blackouts, approvals, maintenance, settings, audit log |
+| `test_superadmin.py` | Super-admin login, dashboard, club provisioning, order linking |
+
+### Test Isolation
+
+Every test starts with a clean slate — both databases are fully truncated before each test,
+and the `testclub` master record is re-seeded automatically so the club resolver can always
+find it. Fixtures use `autocommit=True` connections so inserts are immediately visible to
+the application's own connections.
 
 ---
 
