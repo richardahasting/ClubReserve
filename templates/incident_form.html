@@ -38,7 +38,7 @@
             </label>
             <select class="form-select" name="severity">
               <option value="minor">Minor — cosmetic damage or minor issue</option>
-              <option value="moderate">Moderate — affects boat operation</option>
+              <option value="moderate">Moderate — affects {% if is_plane %}aircraft{% else %}vessel{% endif %} operation</option>
               <option value="major">Major — significant damage or safety concern</option>
             </select>
           </div>
