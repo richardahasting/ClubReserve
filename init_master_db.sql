@@ -58,6 +58,25 @@ CREATE TABLE IF NOT EXISTS master_audit_log (
     created_at  TIMESTAMP DEFAULT NOW()
 );
 
+-- Marketing orders / trial signups
+CREATE TABLE IF NOT EXISTS orders (
+    id              SERIAL PRIMARY KEY,
+    club_name       VARCHAR(100) NOT NULL,
+    contact_name    VARCHAR(100) NOT NULL,
+    contact_email   VARCHAR(200) NOT NULL,
+    tier            VARCHAR(20)  NOT NULL,   -- 'path' | 'subdomain' | 'custom'
+    craft_count     INTEGER      NOT NULL DEFAULT 1,
+    amount_cents    INTEGER      NOT NULL DEFAULT 0,
+    early_bird      BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_trial        BOOLEAN      NOT NULL DEFAULT FALSE,
+    custom_domain   VARCHAR(200),
+    payment_method  VARCHAR(20),             -- 'stripe' | 'paypal' | null (trial)
+    payment_id      VARCHAR(200),            -- Stripe session ID or PayPal order ID
+    status          VARCHAR(20)  NOT NULL DEFAULT 'pending',  -- pending/paid/provisioned
+    notes           TEXT,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_clubs_short_name  ON clubs(short_name);
 CREATE INDEX IF NOT EXISTS idx_clubs_is_active   ON clubs(is_active);

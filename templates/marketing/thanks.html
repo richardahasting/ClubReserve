@@ -1,0 +1,98 @@
+{% extends "marketing/base.html" %}
+{% block title %}
+  {% if is_trial %}Thank You — FleetNests Trial{% else %}Thank You — FleetNests{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .thanks-icon { font-size:4rem; }
+  .step-num { width:2rem; height:2rem; border-radius:50%; background:var(--fn-gold);
+              color:#fff; font-weight:700; display:flex; align-items:center;
+              justify-content:center; flex-shrink:0; font-size:.9rem; }
+  .next-steps { border:2px solid #dee2e6; border-radius:1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center" style="max-width:680px">
+
+  <div class="thanks-icon mb-3">
+    {% if is_trial %}
+    <i class="bi bi-rocket-takeoff-fill text-gold"></i>
+    {% else %}
+    <i class="bi bi-check-circle-fill text-success"></i>
+    {% endif %}
+  </div>
+
+  <h1 class="fn-brand fw-bold mb-2">
+    {% if is_trial %}Your trial is on its way!{% else %}Welcome to FleetNests!{% endif %}
+  </h1>
+
+  <p class="lead text-muted mb-4">
+    {% if is_trial %}
+      We received your trial request for <strong>{{ club_name }}</strong>. Your club will be live at
+      <strong>fleetnests.com/{{ club_name }}</strong> within one business day.
+    {% else %}
+      Payment confirmed for <strong>{{ club_name }}</strong>. We'll have your club set up within one business day.
+    {% endif %}
+  </p>
+
+  {% if not is_trial and order %}
+  <div class="alert alert-light border rounded-3 text-start small mb-4 px-4">
+    <div class="d-flex justify-content-between"><span class="text-muted">Plan</span><span class="fw-semibold">{{ order.tier | title }}</span></div>
+    <div class="d-flex justify-content-between"><span class="text-muted">Craft</span><span>{{ order.craft_count }}</span></div>
+    <div class="d-flex justify-content-between"><span class="text-muted">Amount paid</span><span class="fw-semibold">${{ "%.2f" | format(order.amount_cents / 100) }}</span></div>
+    <div class="d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ order.contact_email }}</span></div>
+  </div>
+  {% endif %}
+
+  <div class="next-steps p-4 mb-5 text-start">
+    <h5 class="fw-bold mb-4">What happens next</h5>
+
+    {% if is_trial %}
+    {% set steps = [
+      ("We'll set up your club", "Your FleetNests instance will be provisioned at fleetnests.com/" ~ club_name ~ " within one business day."),
+      ("You'll get an email", "We'll email your admin login details to " ~ contact_email ~ " as soon as your club is ready."),
+      ("Explore everything", "Log in and configure your club — upload your logo, add colors, add craft, invite members. Everything is included."),
+      ("Upgrade any time", "If you love it, upgrading is easy. Your data moves with you. Or just let the trial expire — no charge."),
+    ] %}
+    {% else %}
+    {% set steps = [
+      ("Order confirmed", "A receipt has been sent to " ~ order.contact_email ~ ". Keep it for your records."),
+      ("We'll set up your club", "Your FleetNests instance will be provisioned within one business day. We'll email you when it's ready."),
+      ("You'll get your login", "We'll email admin credentials to " ~ order.contact_email ~ " along with a quick-start guide."),
+      ("Customize and launch", "Upload your logo, choose your colors, add your fleet, and invite your first members. You're in control."),
+    ] %}
+    {% endif %}
+
+    {% for title, desc in steps %}
+    <div class="d-flex gap-3 mb-3">
+      <div class="step-num mt-1">{{ loop.index }}</div>
+      <div>
+        <div class="fw-semibold">{{ title }}</div>
+        <div class="text-muted small">{{ desc }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+    <a href="https://fleetnests.com/sample1/" target="_blank" class="btn btn-outline-secondary">
+      <i class="bi bi-eye me-2"></i>See a Live Demo
+    </a>
+    <a href="{{ url_for('marketing.pricing') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-tag me-2"></i>View Pricing
+    </a>
+    {% if is_trial and early_bird %}
+    <a href="{{ url_for('marketing.order_form') }}" class="btn btn-gold">
+      <i class="bi bi-lightning-charge-fill me-2"></i>Upgrade &amp; Save 40%
+    </a>
+    {% endif %}
+  </div>
+
+  <p class="text-muted small">
+    Questions? Email us at <a href="mailto:hello@fleetnests.com" class="text-gold fw-semibold">hello@fleetnests.com</a>
+  </p>
+
+</div>
+{% endblock %}

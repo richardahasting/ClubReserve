@@ -39,8 +39,9 @@ def _resolve_short_name(host: str) -> str | None:
     # Strip port if present
     host_only = host.split(":")[0].lower()
     parts = host_only.split(".")
-    # Need at least two parts (subdomain + domain)
-    if len(parts) >= 2:
+    # Need at least THREE parts (subdomain.domain.tld) to be a club subdomain.
+    # Bare domains like fleetnests.com, localhost have only 1-2 parts.
+    if len(parts) >= 3:
         candidate = parts[0]
         # Reject obviously non-club hostnames
         if candidate not in ("www", "api", "superadmin", "admin", "mail"):
@@ -137,8 +138,16 @@ def init_app(app: Flask):
             short_name = os.environ.get("CLUB_SHORT_NAME")
 
         if not short_name:
-            # No club resolved — return 404 rather than silently serving wrong data
-            log.warning("No club resolved for host=%s path=%s", host, request.path)
+            # Bare root domain → serve the marketing site instead of 404
+            host_only = (request.host or "").split(":")[0].lower()
+            if host_only in ("fleetnests.com", "www.fleetnests.com", "localhost", "127.0.0.1"):
+                g.is_marketing = True
+                g.club = None
+                g.club_id = None
+                g.vehicle_type = None
+                g.club_dsn = None
+                return
+            log.warning("No club resolved for host=%s path=%s", request.host, request.path)
             abort(404)
 
         club = _load_club(short_name)

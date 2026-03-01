@@ -184,6 +184,47 @@ def save_demo_lead(email: str, club_short_name: str, club_name: str,
         return False
 
 
+# ---------------------------------------------------------------------------
+# Marketing orders / trial signups
+# ---------------------------------------------------------------------------
+
+def create_order(club_name: str, contact_name: str, contact_email: str,
+                 tier: str, craft_count: int, amount_cents: int,
+                 early_bird: bool, is_trial: bool,
+                 custom_domain: str = None, notes: str = None) -> int:
+    """Insert a new order/trial record. Returns the new order id."""
+    row = _insert(
+        "INSERT INTO orders "
+        "(club_name, contact_name, contact_email, tier, craft_count, amount_cents, "
+        " early_bird, is_trial, custom_domain, notes) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+        (club_name, contact_name, contact_email, tier, craft_count, amount_cents,
+         early_bird, is_trial, custom_domain, notes),
+    )
+    return row["id"] if row else None
+
+
+def update_order_payment(order_id: int, payment_method: str, payment_id: str, status: str = "paid"):
+    """Record payment details after Stripe/PayPal confirms."""
+    _execute(
+        "UPDATE orders SET payment_method=%s, payment_id=%s, status=%s WHERE id=%s",
+        (payment_method, payment_id, status, order_id),
+        fetch=False,
+    )
+
+
+def get_order(order_id: int) -> dict | None:
+    return _fetchone("SELECT * FROM orders WHERE id=%s", (order_id,))
+
+
+def get_order_by_payment_id(payment_id: str) -> dict | None:
+    return _fetchone("SELECT * FROM orders WHERE payment_id=%s", (payment_id,))
+
+
+def get_all_orders() -> list:
+    return _execute("SELECT * FROM orders ORDER BY created_at DESC")
+
+
 def get_demo_leads(club_short_name: str = None) -> list:
     """Return all demo leads, optionally filtered by club."""
     import psycopg2.extras

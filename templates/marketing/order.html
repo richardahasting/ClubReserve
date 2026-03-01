@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block title %}Subscribe — FleetNests{% endblock %}
+
+{% block extra_head %}
+<style>
+  .order-card { border:2px solid #dee2e6; border-radius:1rem; }
+  .summary-box { background:var(--fn-light); border-radius:.75rem; border:1px solid #dee2e6; }
+  .pay-tab { border:2px solid #dee2e6; border-radius:.75rem; cursor:pointer;
+             transition:all .2s; padding:1rem 1.5rem; }
+  .pay-tab.active { border-color:var(--fn-gold); background:rgba(201,168,76,.06); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:860px">
+
+  <div class="text-center mb-4">
+    <h1 class="fn-brand fw-bold">Subscribe to FleetNests</h1>
+    {% if early_bird %}
+    <div class="alert alert-warning d-inline-block px-4 py-2 rounded-pill border-0 fw-semibold">
+      <i class="bi bi-lightning-charge-fill me-1"></i>
+      Early Bird 40% discount applied — expires {{ early_bird_deadline }}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+
+    {# ── Left: Form ── #}
+    <div class="col-md-7">
+      <div class="order-card p-4">
+        <h5 class="fw-bold mb-4">Your club details</h5>
+
+        {# Tier selector #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Plan</label>
+          <div class="d-flex flex-wrap gap-2">
+            <input type="radio" class="btn-check" name="tier" id="tier_path" value="path"
+                   {% if selected_tier == 'path' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="tier_path">Starter</label>
+            <input type="radio" class="btn-check" name="tier" id="tier_sub" value="subdomain"
+                   {% if selected_tier == 'subdomain' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="tier_sub">Professional</label>
+            <input type="radio" class="btn-check" name="tier" id="tier_cust" value="custom"
+                   {% if selected_tier == 'custom' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="tier_cust">Premium</label>
+          </div>
+          <div class="form-text" id="tier_desc"></div>
+        </div>
+
+        {# Craft count #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="craft_count">Number of craft in fleet</label>
+          <input type="number" id="craft_count" class="form-control" style="max-width:120px"
+                 min="1" max="50" value="{{ selected_craft }}">
+          <div class="form-text">First craft included; +$12.50/yr each additional{% if early_bird %} (Early Bird: +$7.50/yr){% endif %}</div>
+        </div>
+
+        <hr class="my-4">
+
+        {# Club info #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="club_name">
+            Club name / desired URL slug <span class="text-danger">*</span>
+          </label>
+          <input type="text" id="club_name" name="club_name" class="form-control" required
+                 maxlength="80" placeholder="e.g. lakeview-boat-club"
+                 pattern="[a-zA-Z0-9\-]+"
+                 title="Letters, numbers, and hyphens only">
+          <div class="form-text" id="url_preview">Your club URL will appear here</div>
+        </div>
+
+        <div id="custom_domain_row" class="mb-3" style="display:none">
+          <label class="form-label fw-semibold" for="custom_domain">Your custom domain</label>
+          <input type="text" id="custom_domain" name="custom_domain" class="form-control"
+                 placeholder="e.g. lakeviewboatclub.com">
+          <div class="form-text">The domain you own (or plan to register). We will configure it for you.</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="contact_name">Your name <span class="text-danger">*</span></label>
+            <input type="text" id="contact_name" name="contact_name" class="form-control" required maxlength="100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="contact_email">Email <span class="text-danger">*</span></label>
+            <input type="email" id="contact_email" name="contact_email" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="notes">Notes (optional)</label>
+          <textarea id="notes" name="notes" class="form-control" rows="2"
+                    placeholder="Fleet details, questions, or anything else..."></textarea>
+        </div>
+
+        <hr class="my-4">
+        <h6 class="fw-bold mb-3">Payment method</h6>
+
+        {# Payment tabs #}
+        <div class="d-flex gap-3 mb-3">
+          <div class="pay-tab active flex-fill text-center" id="tab_stripe" onclick="selectPay('stripe')">
+            <i class="bi bi-credit-card fs-4 d-block mb-1"></i>
+            <div class="fw-semibold small">Credit / Debit Card</div>
+            <div class="text-muted" style="font-size:.7rem">Visa, Mastercard, Amex</div>
+          </div>
+          <div class="pay-tab flex-fill text-center" id="tab_paypal" onclick="selectPay('paypal')">
+            <i class="bi bi-paypal fs-4 d-block mb-1"></i>
+            <div class="fw-semibold small">PayPal</div>
+            <div class="text-muted" style="font-size:.7rem">Pay with your PayPal account</div>
+          </div>
+        </div>
+
+        {# Stripe button #}
+        <div id="pay_stripe">
+          <button type="button" id="stripe_btn" onclick="stripeCheckout()"
+                  class="btn btn-gold w-100 btn-lg">
+            <i class="bi bi-credit-card me-2"></i>Pay with Card
+          </button>
+        </div>
+
+        {# PayPal button container #}
+        <div id="pay_paypal" style="display:none">
+          <div id="paypal-button-container"></div>
+        </div>
+
+        {# Hidden form for Stripe POST #}
+        <form id="stripe_form" method="post" action="{{ url_for('marketing.stripe_checkout') }}" style="display:none">
+          <input type="hidden" name="tier" id="f_tier">
+          <input type="hidden" name="craft_count" id="f_craft">
+          <input type="hidden" name="club_name" id="f_club">
+          <input type="hidden" name="contact_name" id="f_contact">
+          <input type="hidden" name="contact_email" id="f_email">
+          <input type="hidden" name="custom_domain" id="f_domain">
+          <input type="hidden" name="notes" id="f_notes">
+        </form>
+
+      </div>
+    </div>
+
+    {# ── Right: Live price summary ── #}
+    <div class="col-md-5">
+      <div class="summary-box p-4 sticky-top" style="top:1.5rem">
+        <h6 class="fw-bold mb-3">Order summary</h6>
+        <div id="summary_plan" class="fw-semibold mb-1"></div>
+        <div id="summary_craft" class="small text-muted mb-1"></div>
+        <hr>
+        <div id="summary_base" class="d-flex justify-content-between small"></div>
+        <div id="summary_extra" class="d-flex justify-content-between small"></div>
+        <div id="summary_disc" class="d-flex justify-content-between small text-success"></div>
+        <hr>
+        <div id="summary_total" class="d-flex justify-content-between fw-bold fs-5"></div>
+        <div id="summary_renew" class="text-muted small mt-1"></div>
+        {% if early_bird %}
+        <div class="alert alert-warning small py-2 mt-3 mb-0">
+          <i class="bi bi-lightning-charge-fill me-1"></i>
+          40% Early Bird discount applied. Offer ends {{ early_bird_deadline }}.
+        </div>
+        {% endif %}
+        <hr>
+        <div class="small text-muted">
+          <i class="bi bi-shield-check me-1 text-success"></i>Secure payment via Stripe or PayPal<br>
+          <i class="bi bi-arrow-clockwise me-1"></i>Renews annually — cancel any time<br>
+          <i class="bi bi-envelope me-1"></i>Setup within 1 business day
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if paypal_client_id %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
+{% endif %}
+<script>
+const PRICES = { path: {{ tier_prices.path }}, subdomain: {{ tier_prices.subdomain }}, custom: {{ tier_prices.custom }} };
+const EXTRA = {{ extra_craft_cents }};
+const EB_PCT = {{ early_bird_pct }};
+const IS_EB = {{ 'true' if early_bird else 'false' }};
+const TIER_DESCS = {
+  path: 'fleetnests.com/yourclub',
+  subdomain: 'yourclub.fleetnests.com',
+  custom: 'your-own-domain.com',
+};
+const TIER_LABELS = { path: 'Starter', subdomain: 'Professional', custom: 'Premium' };
+
+let currentPayMethod = 'stripe';
+let paypalRendered = false;
+
+function fmtMoney(cents) { return '$' + (cents / 100).toFixed(2); }
+
+function calcTotal() {
+  const tier = document.querySelector('input[name="tier"]:checked')?.value || 'subdomain';
+  const craft = Math.max(1, parseInt(document.getElementById('craft_count').value) || 1);
+  const base = PRICES[tier] || 0;
+  const extra = Math.max(0, craft - 1) * EXTRA;
+  const sub = base + extra;
+  const disc = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
+  return { tier, craft, base, extra, sub, disc, total: sub - disc };
+}
+
+function updateSummary() {
+  const { tier, craft, base, extra, sub, disc, total } = calcTotal();
+
+  function setText(id, label, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = '';
+    if (val === null) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const s = document.createElement('span'); s.textContent = label; el.appendChild(s);
+    const v = document.createElement('span'); v.textContent = val; el.appendChild(v);
+  }
+
+  document.getElementById('summary_plan').textContent = TIER_LABELS[tier] + ' Plan';
+  document.getElementById('summary_craft').textContent = craft + ' craft' + (craft > 1 ? ' (' + (craft-1) + ' additional)' : ' (included)');
+
+  setText('summary_base', 'Base plan', fmtMoney(base));
+  if (extra > 0) { setText('summary_extra', 'Additional craft', fmtMoney(extra)); }
+  else { const el = document.getElementById('summary_extra'); if(el) el.textContent = ''; }
+  if (disc > 0) { setText('summary_disc', 'Early Bird (40% off)', '-' + fmtMoney(disc)); }
+  else { const el = document.getElementById('summary_disc'); if(el) el.textContent = ''; }
+  setText('summary_total', 'First year', fmtMoney(total));
+  document.getElementById('summary_renew').textContent = 'Renews at ' + fmtMoney(sub) + '/yr';
+
+  // URL preview
+  const slug = document.getElementById('club_name').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const preview = document.getElementById('url_preview');
+  if (slug) {
+    const url = tier === 'path' ? 'fleetnests.com/' + slug
+              : tier === 'subdomain' ? slug + '.fleetnests.com'
+              : document.getElementById('custom_domain')?.value || 'your-domain.com';
+    preview.textContent = 'Your URL: ' + url;
+  } else {
+    preview.textContent = 'Your club URL will appear here';
+  }
+
+  // Show/hide custom domain
+  const cdr = document.getElementById('custom_domain_row');
+  if (cdr) cdr.style.display = tier === 'custom' ? '' : 'none';
+
+  document.getElementById('tier_desc').textContent = TIER_DESCS[tier];
+}
+
+function selectPay(method) {
+  currentPayMethod = method;
+  document.getElementById('tab_stripe').classList.toggle('active', method === 'stripe');
+  document.getElementById('tab_paypal').classList.toggle('active', method === 'paypal');
+  document.getElementById('pay_stripe').style.display = method === 'stripe' ? '' : 'none';
+  document.getElementById('pay_paypal').style.display = method === 'paypal' ? '' : 'none';
+
+  if (method === 'paypal' && !paypalRendered && typeof paypal !== 'undefined') {
+    paypalRendered = true;
+    paypal.Buttons({
+      createOrder: function() {
+        const { tier, craft } = calcTotal();
+        return fetch('/order/paypal/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tier, craft_count: craft }),
+        }).then(r => r.json()).then(d => d.id);
+      },
+      onApprove: function(data) {
+        const { tier, craft } = calcTotal();
+        return fetch('/order/paypal/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderID: data.orderID,
+            tier, craft_count: craft,
+            club_name: document.getElementById('club_name').value,
+            contact_name: document.getElementById('contact_name').value,
+            contact_email: document.getElementById('contact_email').value,
+            custom_domain: document.getElementById('custom_domain')?.value || '',
+            notes: document.getElementById('notes').value,
+          }),
+        }).then(r => r.json()).then(d => { if (d.redirect) window.location.href = d.redirect; });
+      },
+      onError: function(err) { alert('PayPal error. Please try again or use credit card.'); },
+    }).render('#paypal-button-container');
+  }
+}
+
+function stripeCheckout() {
+  const { tier, craft } = calcTotal();
+  const club = document.getElementById('club_name').value.trim();
+  const contact = document.getElementById('contact_name').value.trim();
+  const email = document.getElementById('contact_email').value.trim();
+  if (!club || !contact || !email) {
+    alert('Please fill in club name, your name, and email before paying.');
+    return;
+  }
+  document.getElementById('f_tier').value    = tier;
+  document.getElementById('f_craft').value   = craft;
+  document.getElementById('f_club').value    = club;
+  document.getElementById('f_contact').value = contact;
+  document.getElementById('f_email').value   = email;
+  document.getElementById('f_domain').value  = document.getElementById('custom_domain')?.value || '';
+  document.getElementById('f_notes').value   = document.getElementById('notes').value;
+  document.getElementById('stripe_form').submit();
+}
+
+// Wire up live updates
+document.querySelectorAll('input[name="tier"]').forEach(r => r.addEventListener('change', updateSummary));
+document.getElementById('craft_count').addEventListener('input', updateSummary);
+document.getElementById('club_name').addEventListener('input', updateSummary);
+updateSummary();
+</script>
+{% endblock %}

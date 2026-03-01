@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Pricing — FleetNests{% endblock %}
+
+{% block extra_head %}
+<style>
+  .tier-card { border:2px solid #dee2e6; border-radius:1rem; transition:all .2s; }
+  .tier-card.popular { border-color:var(--fn-gold); }
+  .tier-card:hover { border-color:var(--fn-gold); box-shadow:0 8px 28px rgba(10,35,66,.12); }
+  .calc-box { background:var(--fn-light); border-radius:1rem; border:1px solid #dee2e6; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="bg-navy text-white py-5">
+  <div class="container text-center py-3">
+    <h1 class="fn-brand fw-bold display-5">Simple, Transparent Pricing</h1>
+    <p class="text-white-50 lead">One low annual fee covers everything — members, craft, features, support.</p>
+    {% if early_bird %}
+    <div class="alert alert-warning d-inline-block px-4 py-2 rounded-pill border-0 fw-semibold mt-2">
+      <i class="bi bi-lightning-charge-fill me-1"></i>
+      Early Bird: 40% off your first year — expires {{ early_bird_deadline }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="container py-5">
+
+  {# ── Plan Cards ── #}
+  <div class="row g-4 justify-content-center mb-5">
+
+    {# Path #}
+    {% set base = tier_prices.path %}
+    {% set eb = (base * 0.6) | round | int %}
+    <div class="col-md-4">
+      <div class="tier-card p-4 h-100 bg-white">
+        <div class="fw-semibold text-muted small mb-2">STARTER</div>
+        <h2 class="fn-brand fw-bold">
+          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+          <span class="fs-6 fw-normal text-muted">/year</span>
+        </h2>
+        <div class="badge bg-light text-muted border mb-3">fleetnests.com/<em>yourclub</em></div>
+        <ul class="list-unstyled small">
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Full reservation calendar</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Check-out / check-in workflow</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Maintenance scheduling &amp; logs</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Weather alerts</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Member management</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Custom branding &amp; colors</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Photo gallery</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
+          <li class="mb-2 text-muted"><i class="bi bi-link-45deg me-2"></i>Shared domain: fleetnests.com/clubname</li>
+        </ul>
+        <a href="{{ url_for('marketing.order_form', tier='path') }}" class="btn btn-outline-secondary w-100 mt-3">Choose Starter</a>
+      </div>
+    </div>
+
+    {# Subdomain — popular #}
+    {% set base = tier_prices.subdomain %}
+    {% set eb = (base * 0.6) | round | int %}
+    <div class="col-md-4">
+      <div class="tier-card popular p-4 h-100 bg-white position-relative">
+        <span class="badge position-absolute top-0 start-50 translate-middle px-3 py-2 rounded-pill"
+              style="background:var(--fn-gold);font-size:.8rem">&#11088; Most Popular</span>
+        <div class="fw-semibold text-muted small mb-2 mt-3">PROFESSIONAL</div>
+        <h2 class="fn-brand fw-bold">
+          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+          <span class="fs-6 fw-normal text-muted">/year</span>
+        </h2>
+        <div class="badge bg-light text-muted border mb-3"><em>yourclub</em>.fleetnests.com</div>
+        <ul class="list-unstyled small">
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Starter</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Your own subdomain</strong></li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Cleaner, more memorable URL</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Easier for members to bookmark</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
+        </ul>
+        <a href="{{ url_for('marketing.order_form', tier='subdomain') }}" class="btn btn-gold w-100 mt-3">Choose Professional</a>
+      </div>
+    </div>
+
+    {# Custom domain #}
+    {% set base = tier_prices.custom %}
+    {% set eb = (base * 0.6) | round | int %}
+    <div class="col-md-4">
+      <div class="tier-card p-4 h-100 bg-white">
+        <div class="fw-semibold text-muted small mb-2">PREMIUM</div>
+        <h2 class="fn-brand fw-bold">
+          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+          <span class="fs-6 fw-normal text-muted">/year + domain</span>
+        </h2>
+        <div class="badge bg-light text-muted border mb-3"><em>yourclub</em>.com (any domain)</div>
+        <ul class="list-unstyled small">
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Professional</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Your own custom domain</strong></li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Complete brand ownership</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>yourclub.com or any domain you own</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
+          <li class="mb-2 text-muted"><i class="bi bi-globe me-2"></i>+ domain registration (~$15–20/yr)</li>
+        </ul>
+        <a href="{{ url_for('marketing.order_form', tier='custom') }}" class="btn btn-outline-secondary w-100 mt-3">Choose Premium</a>
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Live Calculator ── #}
+  <div class="row justify-content-center mb-5">
+    <div class="col-md-8">
+      <div class="calc-box p-4 p-md-5">
+        <h4 class="fn-brand fw-bold mb-4 text-center">
+          <i class="bi bi-calculator me-2 text-gold"></i>Price Calculator
+        </h4>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Choose your plan</label>
+          <div class="d-flex flex-wrap gap-2">
+            <input type="radio" class="btn-check" name="calc_tier" id="ct_path" value="path">
+            <label class="btn btn-outline-secondary btn-sm" for="ct_path">Starter</label>
+            <input type="radio" class="btn-check" name="calc_tier" id="ct_sub" value="subdomain" checked>
+            <label class="btn btn-outline-secondary btn-sm" for="ct_sub">Professional</label>
+            <input type="radio" class="btn-check" name="calc_tier" id="ct_cust" value="custom">
+            <label class="btn btn-outline-secondary btn-sm" for="ct_cust">Premium</label>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="calc_craft">Number of craft in your fleet</label>
+          <div class="d-flex align-items-center gap-3">
+            <input type="number" id="calc_craft" class="form-control" style="max-width:100px" min="1" max="50" value="1">
+            <span class="text-muted small">First craft included — ${{ "%.2f" | format(extra_craft_cents/100) }}/yr each additional</span>
+          </div>
+        </div>
+        <div id="calc_result" class="p-3 rounded-2 bg-white border">
+          <!-- populated by JS -->
+        </div>
+        <div class="mt-3 text-center">
+          <a id="calc_cta" href="{{ url_for('marketing.order_form', tier='subdomain', craft=1) }}"
+             class="btn btn-gold px-5">
+            <i class="bi bi-cart me-2"></i>Order This Plan
+          </a>
+          <a href="{{ url_for('marketing.trial') }}" class="btn btn-link ms-3 text-muted">
+            Or start a free trial first
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── FAQ ── #}
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <h4 class="fn-brand fw-bold text-center mb-4">Frequently Asked Questions</h4>
+      <div class="accordion" id="faqAccordion">
+        {% set faqs = [
+          ("What's included in all plans?",
+           "All plans include the full reservation calendar, member management, check-out/check-in workflow, maintenance tracking, weather alerts, fuel logging, incident reports, message board, photo gallery, custom branding, iCal feed, and the built-in feedback system. There are no feature tiers — every club gets everything."),
+          ("How does the free trial work?",
+           "Submit the trial form with your club name and contact info — no credit card required. We'll provision your club at fleetnests.com/clubname within one business day and email you your admin login. You get 30 days to explore the full system with your real data. Upgrade at any time, or let it expire with no charge."),
+          ("What counts as a 'craft'?",
+           "Each boat or aircraft in your fleet is one craft. The first craft is included in every plan. Each additional craft adds $12.50 per year (Early Bird: $7.50/yr). If your club has 3 boats, that's the base plan price plus 2 x $12.50 = $25 extra per year."),
+          ("Can I use my own logo and colors?",
+           "Yes — all plans include full custom branding. Upload your logo, choose your primary and accent colors, add a hero banner photo, and populate a club gallery. Your members see a site that looks like your club, not generic software."),
+          ("What is the difference between the URL options?",
+           "Starter: your club lives at fleetnests.com/yourclub. Professional: your club gets its own subdomain at yourclub.fleetnests.com. Premium: you provide your own domain (e.g., yourclub.com) which we configure. You pay domain registration separately (~$15-20/yr)."),
+          ("How do I request a new feature?",
+           "Every page in FleetNests has a built-in Feedback button. Click it, describe your idea, and optionally attach a screenshot. The AI routes feature requests directly to our development inbox. Most of our features started as member feedback."),
+          ("What if I need to add craft later?",
+           "Contact us and we will update your subscription. Additional craft pricing is prorated to your annual renewal."),
+        ] %}
+        {% for q, a in faqs %}
+        <div class="accordion-item border-0 border-bottom">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-transparent fw-semibold"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#faq{{ loop.index }}">
+              {{ q }}
+            </button>
+          </h2>
+          <div id="faq{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+            <div class="accordion-body text-muted">{{ a }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const PRICES = { path: {{ tier_prices.path }}, subdomain: {{ tier_prices.subdomain }}, custom: {{ tier_prices.custom }} };
+const EXTRA = {{ extra_craft_cents }};
+const EB_PCT = {{ early_bird_pct }};
+const IS_EB = {{ 'true' if early_bird else 'false' }};
+const TIER_LABELS = { path: 'Starter', subdomain: 'Professional', custom: 'Premium' };
+
+function fmtMoney(cents) { return '$' + (cents / 100).toFixed(2); }
+
+function calcUpdate() {
+  const tier  = document.querySelector('input[name="calc_tier"]:checked')?.value || 'subdomain';
+  const craft = Math.max(1, parseInt(document.getElementById('calc_craft').value) || 1);
+  const base  = PRICES[tier] || 0;
+  const extra = Math.max(0, craft - 1) * EXTRA;
+  const sub   = base + extra;
+  const disc  = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
+  const total = sub - disc;
+
+  const result = document.getElementById('calc_result');
+  result.textContent = '';
+
+  function addLine(text, cls) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    if (cls) d.className = cls;
+    result.appendChild(d);
+  }
+
+  addLine('Plan: ' + TIER_LABELS[tier], 'small text-muted mb-1');
+  addLine('Base price: ' + fmtMoney(base), 'small text-muted');
+  if (craft > 1) addLine((craft - 1) + ' additional craft x ' + fmtMoney(EXTRA) + ': ' + fmtMoney(extra), 'small text-muted');
+  if (IS_EB && disc > 0) addLine('Early Bird discount (' + EB_PCT + '% off): -' + fmtMoney(disc), 'small text-success');
+  addLine('First year total: ' + fmtMoney(total), 'mt-2 fw-bold fs-5');
+  if (IS_EB) addLine('Renews at ' + fmtMoney(sub) + '/yr after first year', 'small text-muted');
+  if (tier === 'custom') addLine('+ domain registration (~$15-20/yr, paid separately)', 'small text-muted mt-1');
+
+  document.getElementById('calc_cta').href = '/order?tier=' + tier + '&craft=' + craft;
+}
+
+document.querySelectorAll('input[name="calc_tier"]').forEach(r => r.addEventListener('change', calcUpdate));
+document.getElementById('calc_craft').addEventListener('input', calcUpdate);
+calcUpdate();
+</script>
+{% endblock %}

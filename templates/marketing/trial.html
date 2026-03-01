@@ -1,0 +1,157 @@
+{% extends "marketing/base.html" %}
+{% block title %}Free Trial — FleetNests{% endblock %}
+
+{% block extra_head %}
+<style>
+  .trial-card { border:2px solid #dee2e6; border-radius:1rem; }
+  .include-item { display:flex; align-items:flex-start; gap:.6rem; margin-bottom:.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:820px">
+
+  <div class="text-center mb-5">
+    <h1 class="fn-brand fw-bold">Start Your Free 30-Day Trial</h1>
+    <p class="lead text-muted">No credit card required. Your club is live within one business day.</p>
+  </div>
+
+  <div class="row g-4">
+
+    {# ── Left: Form ── #}
+    <div class="col-md-7">
+      <div class="trial-card p-4">
+        <h5 class="fw-bold mb-4">Tell us about your club</h5>
+
+        <form method="post" action="{{ url_for('marketing.trial') }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="club_name">
+              Desired club URL name <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text text-muted small">fleetnests.com/</span>
+              <input type="text" id="club_name" name="club_name" class="form-control" required
+                     maxlength="60" placeholder="lakeview-boat-club"
+                     pattern="[a-zA-Z0-9\-]+"
+                     title="Letters, numbers, and hyphens only"
+                     oninput="updatePreview()">
+            </div>
+            <div class="form-text" id="url_preview">Your club URL will appear here</div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="contact_name">Your name <span class="text-danger">*</span></label>
+              <input type="text" id="contact_name" name="contact_name" class="form-control" required maxlength="100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="contact_email">Email <span class="text-danger">*</span></label>
+              <input type="email" id="contact_email" name="contact_email" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="fleet_size">Number of craft in fleet</label>
+              <input type="number" id="fleet_size" name="fleet_size" class="form-control"
+                     min="1" max="100" value="1">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="craft_type">Type of craft</label>
+              <select id="craft_type" name="craft_type" class="form-select">
+                <option value="">— Select —</option>
+                <option value="boat">Boats / Watercraft</option>
+                <option value="plane">Aircraft</option>
+                <option value="mixed">Mixed fleet</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold" for="notes">Notes (optional)</label>
+            <textarea id="notes" name="notes" class="form-control" rows="3"
+                      placeholder="Club details, questions, special requirements..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-gold w-100 btn-lg">
+            <i class="bi bi-rocket-takeoff me-2"></i>Start My Free Trial
+          </button>
+
+          <p class="text-center text-muted small mt-3 mb-0">
+            No credit card required &mdash; upgrade any time, or let it expire with no charge.
+          </p>
+
+        </form>
+      </div>
+    </div>
+
+    {# ── Right: What's included ── #}
+    <div class="col-md-5">
+      <div class="p-4 bg-light rounded-3 h-100">
+        <h6 class="fw-bold mb-3">What you get in your trial</h6>
+
+        {% set features = [
+          ('check-circle-fill text-success', 'Full reservation calendar'),
+          ('check-circle-fill text-success', 'Check-out &amp; check-in workflow'),
+          ('check-circle-fill text-success', 'Maintenance scheduling &amp; logs'),
+          ('check-circle-fill text-success', 'Weather alerts'),
+          ('check-circle-fill text-success', 'Member management'),
+          ('check-circle-fill text-success', 'Custom branding &amp; colors'),
+          ('check-circle-fill text-success', 'Photo gallery'),
+          ('check-circle-fill text-success', 'Feedback &amp; feature requests'),
+          ('check-circle-fill text-success', 'Full admin panel'),
+        ] %}
+        {% for icon, text in features %}
+        <div class="include-item">
+          <i class="bi bi-{{ icon }} mt-1 flex-shrink-0"></i>
+          <span class="small">{{ text }}</span>
+        </div>
+        {% endfor %}
+
+        <hr class="my-3">
+
+        <div class="small text-muted">
+          <div class="include-item">
+            <i class="bi bi-clock mt-1 flex-shrink-0 text-primary"></i>
+            <span>30 days free at <strong>fleetnests.com/yourclub</strong></span>
+          </div>
+          <div class="include-item">
+            <i class="bi bi-arrow-up-circle mt-1 flex-shrink-0 text-primary"></i>
+            <span>Upgrade to a paid plan any time — keep all your data</span>
+          </div>
+          <div class="include-item">
+            <i class="bi bi-x-circle mt-1 flex-shrink-0 text-secondary"></i>
+            <span>No charge if you don't upgrade — just let it expire</span>
+          </div>
+          <div class="include-item">
+            <i class="bi bi-calendar-check mt-1 flex-shrink-0 text-success"></i>
+            <span>Live within one business day</span>
+          </div>
+        </div>
+
+        {% if early_bird %}
+        <hr class="my-3">
+        <div class="alert alert-warning small py-2 mb-0">
+          <i class="bi bi-lightning-charge-fill me-1"></i>
+          <strong>Early Bird offer active!</strong><br>
+          Upgrade before {{ early_bird_deadline }} for 40% off your first year.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updatePreview() {
+  const slug = document.getElementById('club_name').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const preview = document.getElementById('url_preview');
+  preview.textContent = slug ? 'Your URL: fleetnests.com/' + slug : 'Your club URL will appear here';
+}
+</script>
+{% endblock %}

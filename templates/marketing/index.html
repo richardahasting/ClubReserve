@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+{% block title %}FleetNests — Reservation Software for Boat &amp; Flying Clubs{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hero-section {
+    background: linear-gradient(135deg, var(--fn-dark) 0%, #0d3060 60%, #1a5276 100%);
+    min-height: 88vh; display:flex; align-items:center;
+  }
+  .hero-badge { background: rgba(201,168,76,.15); border:1px solid rgba(201,168,76,.4);
+                color: var(--fn-gold); border-radius:50px; font-size:.8rem; font-weight:600; }
+  .earlybird-bar { background: linear-gradient(90deg, #7d5a00, var(--fn-gold), #7d5a00);
+                   background-size:200% auto; animation: shimmer 3s linear infinite; }
+  @keyframes shimmer { to { background-position: 200% center; } }
+  .step-num { width:48px; height:48px; border-radius:50%; background:var(--fn-navy);
+              color:var(--fn-gold); display:flex; align-items:center; justify-content:center;
+              font-size:1.4rem; font-weight:700; font-family:'Playfair Display',serif; }
+  .demo-card { border:2px solid rgba(10,35,66,.12); border-radius:1rem;
+               transition:all .25s; overflow:hidden; }
+  .demo-card:hover { border-color:var(--fn-gold); transform:translateY(-4px);
+                     box-shadow:0 12px 32px rgba(10,35,66,.15); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Early Bird Banner ── #}
+{% if early_bird %}
+<div class="earlybird-bar text-dark py-2 text-center small fw-semibold">
+  <i class="bi bi-lightning-charge-fill me-1"></i>
+  Early Bird Special — <strong>40% off your first year</strong> on all plans. Offer ends {{ early_bird_deadline }}.
+  <a href="{{ url_for('marketing.order_form') }}" class="ms-2 text-dark fw-bold text-decoration-underline">Claim it now &rarr;</a>
+</div>
+{% endif %}
+
+{# ── Hero ── #}
+<section class="hero-section text-white">
+  <div class="container py-5">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-badge px-3 py-1 d-inline-block mb-3">
+          <i class="bi bi-anchor me-1"></i>Boat &amp; Flying Club Software
+        </span>
+        <h1 class="fn-brand display-4 fw-bold lh-1 mb-3">
+          The reservation platform your club actually deserves.
+        </h1>
+        <p class="lead text-white-75 mb-4" style="color:rgba(255,255,255,.8)">
+          FleetNests gives your boat or flying club a beautiful, full-featured online reservation system — calendar, check-in/check-out, maintenance tracking, member management, and more. Affordable, customizable, and ready in a day.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{{ url_for('marketing.trial') }}" class="btn btn-gold btn-lg px-4">
+            <i class="bi bi-play-circle me-2"></i>Start Free 1-Month Trial
+          </a>
+          <a href="{{ url_for('marketing.pricing') }}" class="btn btn-outline-light btn-lg px-4">
+            See Pricing
+          </a>
+        </div>
+        <p class="small mt-3" style="color:rgba(255,255,255,.5)">
+          No credit card required for trial &middot; Upgrade any time
+        </p>
+      </div>
+      <div class="col-lg-6">
+        <div class="bg-white rounded-3 shadow-lg p-3" style="opacity:.97">
+          <img src="https://fleetnests.com/sample2/club-hero" alt="FleetNests calendar demo"
+               class="img-fluid rounded-2" style="min-height:260px;object-fit:cover;width:100%;background:#e8edf5"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="rounded-2 d-none align-items-center justify-content-center"
+               style="min-height:260px;background:linear-gradient(135deg,#e8edf5,#ccd7e8)">
+            <div class="text-center text-muted">
+              <i class="bi bi-calendar3 display-3 d-block mb-2" style="color:var(--fn-navy)"></i>
+              <div class="fn-brand fw-bold" style="color:var(--fn-navy)">Live Reservation Calendar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── See It Live ── #}
+<section class="py-6 bg-light" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="fn-brand fw-bold">See It Live</h2>
+      <div class="section-divider"></div>
+      <p class="text-muted">Two fully-loaded demo clubs — explore everything before you commit.</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-5">
+        <a href="https://fleetnests.com/sample1/" target="_blank" class="text-decoration-none">
+          <div class="demo-card p-4 h-100 bg-white">
+            <div class="d-flex align-items-center mb-3">
+              <div class="feature-icon me-3" style="background:rgba(26,58,92,.1)">
+                <i class="bi bi-airplane" style="color:#1a3a5c"></i>
+              </div>
+              <div>
+                <div class="fw-bold">Summit Ridge Flying Club</div>
+                <div class="text-muted small">Flagstaff, AZ &middot; 2 aircraft</div>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Piper M600 &amp; Cirrus SR22T. Shows plane mode: Hobbs hours, METAR weather, pre-flight checklist.</p>
+            <span class="btn btn-outline-navy btn-sm" style="border-color:var(--fn-navy);color:var(--fn-navy)">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Open Demo
+            </span>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-5">
+        <a href="https://fleetnests.com/sample2/" target="_blank" class="text-decoration-none">
+          <div class="demo-card p-4 h-100 bg-white">
+            <div class="d-flex align-items-center mb-3">
+              <div class="feature-icon me-3" style="background:rgba(0,95,107,.1)">
+                <i class="bi bi-water" style="color:#005f6b"></i>
+              </div>
+              <div>
+                <div class="fw-bold">Clearwater Boat Club</div>
+                <div class="text-muted small">Lake Geneva, WI &middot; 3 vessels</div>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Catalina 275, Bennington pontoon &amp; MasterCraft. Shows boat mode: fuel levels, marine weather, captain's checklist.</p>
+            <span class="btn btn-outline-navy btn-sm" style="border-color:var(--fn-navy);color:var(--fn-navy)">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Open Demo
+            </span>
+          </div>
+        </a>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <span class="text-muted small">Demo login: any email address &middot; password: <code>FleetNests2026!</code></span>
+    </div>
+  </div>
+</section>
+
+{# ── Features ── #}
+<section class="py-5" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fn-brand fw-bold">Everything your club needs</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="row g-4">
+      {% set features = [
+        ("bi-calendar3",          "Reservation Calendar",    "FullCalendar with overlap prevention, blackout dates, and pending-approval workflow."),
+        ("bi-wrench-adjustable",  "Maintenance Tracking",    "Schedule recurring service tasks and log completed work. Dual-axis overdue detection — by date and hours."),
+        ("bi-cloud-lightning",    "Weather Alerts",          "Auto-emails to members with upcoming trips when NWS or METAR alerts hit your area."),
+        ("bi-fuel-pump",          "Fuel &amp; Hours Log",    "Per-trip fuel and engine-hour records. Aggregated club-wide reporting."),
+        ("bi-palette",            "Your Brand, Your Colors", "Custom primary color, logo, hero image, and photo gallery. Each club looks completely unique."),
+        ("bi-airplane bi-water",  "Boats &amp; Planes",      "Purpose-built modes: fuel level buttons for boats, Hobbs hours and METAR weather for aircraft."),
+        ("bi-chat-left-text",     "Built-In Feedback",       "Members submit feedback with screenshots. AI routes bugs to GitHub; suggestions go to your inbox."),
+        ("bi-calendar-plus",      "iCal Subscription",       "Members subscribe to their personal reservation feed in Google Calendar, Outlook, or Apple Calendar."),
+      ] %}
+      {% for icon, title, desc in features %}
+      <div class="col-sm-6 col-lg-3">
+        <div class="d-flex gap-3">
+          <div class="feature-icon flex-shrink-0">
+            <i class="bi {{ icon }}"></i>
+          </div>
+          <div>
+            <div class="fw-semibold mb-1">{{ title }}</div>
+            <div class="text-muted small">{{ desc | safe }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ── Pricing Summary ── #}
+<section class="py-5 bg-light" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fn-brand fw-bold">Simple, transparent pricing</h2>
+      <div class="section-divider"></div>
+      {% if early_bird %}
+      <div class="alert alert-warning d-inline-block px-4 py-2 rounded-pill border-0 fw-semibold">
+        <i class="bi bi-lightning-charge-fill me-1"></i>
+        40% early bird discount applied automatically — expires {{ early_bird_deadline }}
+      </div>
+      {% endif %}
+    </div>
+    <div class="row g-4 justify-content-center">
+
+      {# Path plan #}
+      {% set base = tier_prices.path %}
+      {% set eb_price = (base * 0.6) | round | int %}
+      <div class="col-md-4">
+        <div class="tier-card p-4 h-100 bg-white">
+          <div class="fw-semibold text-muted small mb-1">STARTER</div>
+          <h3 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            <span class="fs-6 fw-normal text-muted">/yr</span>
+          </h3>
+          <div class="text-muted small mb-3">fleetnests.com/<em>yourclub</em></div>
+          <ul class="list-unstyled small mb-4">
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Full reservation system</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Maintenance tracking</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Custom branding &amp; colors</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+          </ul>
+          <a href="{{ url_for('marketing.order_form', tier='path') }}" class="btn btn-outline-secondary w-100">Get Started</a>
+        </div>
+      </div>
+
+      {# Subdomain plan — popular #}
+      {% set base = tier_prices.subdomain %}
+      {% set eb_price = (base * 0.6) | round | int %}
+      <div class="col-md-4">
+        <div class="tier-card popular p-4 h-100 bg-white position-relative">
+          <span class="badge position-absolute top-0 start-50 translate-middle px-3 py-2"
+                style="background:var(--fn-gold);font-size:.75rem">Most Popular</span>
+          <div class="fw-semibold text-muted small mb-1 mt-2">PROFESSIONAL</div>
+          <h3 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            <span class="fs-6 fw-normal text-muted">/yr</span>
+          </h3>
+          <div class="text-muted small mb-3"><em>yourclub</em>.fleetnests.com</div>
+          <ul class="list-unstyled small mb-4">
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Starter</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Your own subdomain</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Cleaner member-facing URL</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+          </ul>
+          <a href="{{ url_for('marketing.order_form', tier='subdomain') }}" class="btn btn-gold w-100">Get Started</a>
+        </div>
+      </div>
+
+      {# Custom domain #}
+      {% set base = tier_prices.custom %}
+      {% set eb_price = (base * 0.6) | round | int %}
+      <div class="col-md-4">
+        <div class="tier-card p-4 h-100 bg-white">
+          <div class="fw-semibold text-muted small mb-1">PREMIUM</div>
+          <h3 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            <span class="fs-6 fw-normal text-muted">/yr + domain</span>
+          </h3>
+          <div class="text-muted small mb-3"><em>yourclub</em>.com (or any domain)</div>
+          <ul class="list-unstyled small mb-4">
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Professional</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Your own custom domain</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Fully branded experience</li>
+            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+          </ul>
+          <a href="{{ url_for('marketing.order_form', tier='custom') }}" class="btn btn-outline-secondary w-100">Get Started</a>
+        </div>
+      </div>
+
+    </div>
+    <div class="text-center mt-4">
+      <a href="{{ url_for('marketing.pricing') }}" class="text-decoration-none fw-semibold" style="color:var(--fn-navy)">
+        Full pricing details &amp; calculator <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+  </div>
+</section>
+
+{# ── How It Works ── #}
+<section class="py-5" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fn-brand fw-bold">Up and running in a day</h2>
+      <div class="section-divider"></div>
+    </div>
+    <div class="row g-4 justify-content-center text-center">
+      <div class="col-md-3">
+        <div class="step-num mx-auto mb-3">1</div>
+        <h6 class="fw-bold">Start your free trial</h6>
+        <p class="text-muted small">Fill out a short form — club name, contact, fleet size. No credit card needed.</p>
+      </div>
+      <div class="col-md-1 d-none d-md-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right fs-3 text-muted"></i>
+      </div>
+      <div class="col-md-3">
+        <div class="step-num mx-auto mb-3">2</div>
+        <h6 class="fw-bold">We set it up</h6>
+        <p class="text-muted small">We provision your club within one business day and email you a ready-to-use admin login.</p>
+      </div>
+      <div class="col-md-1 d-none d-md-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-right fs-3 text-muted"></i>
+      </div>
+      <div class="col-md-3">
+        <div class="step-num mx-auto mb-3">3</div>
+        <h6 class="fw-bold">Customize &amp; go live</h6>
+        <p class="text-muted small">Upload your logo, set your colors, add members and vehicles. Upgrade to a paid plan any time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Branding ── #}
+<section class="py-5 bg-navy text-white" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <h2 class="fn-brand fw-bold mb-3">Your club, your identity.</h2>
+        <p class="text-white-75 mb-4" style="color:rgba(255,255,255,.8)">
+          Upload your own logo, choose your primary and accent colors, add a hero banner photo, and populate a club photo gallery — all from the admin panel. Your members see a site that feels like <em>your</em> club, not generic reservation software.
+        </p>
+        <ul class="list-unstyled">
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-gold me-2"></i>Custom logo &amp; hero image</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-gold me-2"></i>Club color theme — applied everywhere</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-gold me-2"></i>Photo gallery for your club</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-gold me-2"></i>Vehicle photos on the reservation form</li>
+        </ul>
+      </div>
+      <div class="col-lg-5 offset-lg-1 text-center">
+        <div class="p-4 rounded-3" style="background:rgba(255,255,255,.08)">
+          <i class="bi bi-palette2 display-1 text-gold d-block mb-3"></i>
+          <div class="fw-semibold">Fully customizable — no design skills required</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Feature Requests ── #}
+<section class="py-5" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8 text-center">
+        <i class="bi bi-chat-left-dots display-4 text-gold d-block mb-3"></i>
+        <h2 class="fn-brand fw-bold mb-3">Your feedback shapes the roadmap.</h2>
+        <p class="text-muted lead mb-4">
+          Every page in FleetNests has a built-in feedback button. Spot a bug? Click it — it files a GitHub issue automatically. Have an idea for a great new feature? Click it — it goes straight to the development team. The software gets better every week because of clubs just like yours.
+        </p>
+        <div class="row g-3 justify-content-center">
+          <div class="col-auto">
+            <div class="border rounded-pill px-4 py-2 small fw-semibold">
+              <i class="bi bi-bug me-2 text-danger"></i>Bugs → filed as GitHub issues automatically
+            </div>
+          </div>
+          <div class="col-auto">
+            <div class="border rounded-pill px-4 py-2 small fw-semibold">
+              <i class="bi bi-lightbulb me-2 text-warning"></i>Ideas → directly to the dev team
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ── Final CTA ── #}
+<section class="py-5 bg-light" style="padding-top:4rem;padding-bottom:4rem">
+  <div class="container text-center">
+    <h2 class="fn-brand fw-bold mb-3">Ready to modernize your club?</h2>
+    <p class="text-muted mb-4 lead">Start with a free 30-day trial — no credit card, no commitment.</p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a href="{{ url_for('marketing.trial') }}" class="btn btn-gold btn-lg px-5">
+        <i class="bi bi-play-circle me-2"></i>Start Free Trial
+      </a>
+      <a href="{{ url_for('marketing.pricing') }}" class="btn btn-outline-secondary btn-lg px-5">
+        See All Plans
+      </a>
+    </div>
+    {% if early_bird %}
+    <p class="text-muted small mt-3">
+      <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+      Early bird pricing (40% off) expires {{ early_bird_deadline }} — lock in your rate today.
+    </p>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Countdown timer for early bird deadline
+const deadline = new Date('{{ early_bird_deadline }}');
+function updateCountdown() {
+  const now = new Date();
+  const diff = deadline - now;
+  if (diff <= 0) return;
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = `${d}d ${h}h ${m}m`;
+}
+updateCountdown();
+setInterval(updateCountdown, 60000);
+</script>
+{% endblock %}

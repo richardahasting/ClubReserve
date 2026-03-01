@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FleetNests — Reservation Software for Boat &amp; Flying Clubs{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --fn-navy:   #0A2342;
+      --fn-gold:   #C9A84C;
+      --fn-dark:   #06172d;
+      --fn-light:  #f4f7fb;
+    }
+    body { font-family: 'Inter', sans-serif; background: #fff; color: #222; }
+    .fn-brand { font-family: 'Playfair Display', serif; }
+    .bg-navy  { background-color: var(--fn-navy) !important; }
+    .bg-dark-navy { background-color: var(--fn-dark) !important; }
+    .text-gold { color: var(--fn-gold) !important; }
+    .btn-gold  { background-color: var(--fn-gold); border-color: var(--fn-gold); color: #fff; font-weight: 600; }
+    .btn-gold:hover { background-color: #b8933d; border-color: #b8933d; color: #fff; }
+    .btn-outline-gold { border-color: var(--fn-gold); color: var(--fn-gold); font-weight: 600; }
+    .btn-outline-gold:hover { background-color: var(--fn-gold); color: #fff; }
+    .navbar-fn { background-color: var(--fn-dark); }
+    .nav-link-fn { color: rgba(255,255,255,.85) !important; }
+    .nav-link-fn:hover { color: var(--fn-gold) !important; }
+    .section-divider { border-top: 3px solid var(--fn-gold); width: 60px; margin: .75rem auto 1.5rem; }
+    .feature-icon { width: 52px; height: 52px; border-radius: 12px;
+                    background: rgba(10,35,66,.08); display:flex; align-items:center;
+                    justify-content:center; font-size:1.4rem; color: var(--fn-navy); }
+    .tier-card { border: 2px solid #dee2e6; border-radius: 1rem; transition: all .2s; }
+    .tier-card:hover { border-color: var(--fn-gold); box-shadow: 0 6px 24px rgba(10,35,66,.12); }
+    .tier-card.popular { border-color: var(--fn-gold); }
+    footer a { color: rgba(255,255,255,.6); text-decoration: none; }
+    footer a:hover { color: var(--fn-gold); }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{# ── Navbar ── #}
+<nav class="navbar navbar-expand-lg navbar-fn py-3">
+  <div class="container">
+    <a class="navbar-brand fn-brand text-white fs-4 fw-bold" href="{{ url_for('marketing.index') }}">
+      <i class="bi bi-anchor me-2 text-gold"></i>FleetNests
+    </a>
+    <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navMain">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav ms-auto align-items-center gap-1">
+        <li class="nav-item"><a class="nav-link nav-link-fn" href="{{ url_for('marketing.index') }}">Home</a></li>
+        <li class="nav-item"><a class="nav-link nav-link-fn" href="{{ url_for('marketing.pricing') }}">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link nav-link-fn" href="https://fleetnests.com/sample1/" target="_blank">Demo</a></li>
+        <li class="nav-item ms-2">
+          <a class="btn btn-outline-gold btn-sm" href="{{ url_for('marketing.trial') }}">Free Trial</a>
+        </li>
+        <li class="nav-item ms-1">
+          <a class="btn btn-gold btn-sm" href="{{ url_for('marketing.order_form') }}">Subscribe</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+{# ── Footer ── #}
+<footer class="bg-dark-navy text-white py-5 mt-5">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="fn-brand fs-5 fw-bold mb-2"><i class="bi bi-anchor me-2 text-gold"></i>FleetNests</div>
+        <p class="text-white-50 small mb-0">Modern reservation software for boat &amp; flying clubs. Simple, affordable, and built for real clubs.</p>
+      </div>
+      <div class="col-md-2">
+        <div class="fw-semibold small text-white-50 mb-2">PRODUCT</div>
+        <ul class="list-unstyled small">
+          <li class="mb-1"><a href="{{ url_for('marketing.pricing') }}">Pricing</a></li>
+          <li class="mb-1"><a href="{{ url_for('marketing.trial') }}">Free Trial</a></li>
+          <li class="mb-1"><a href="{{ url_for('marketing.order_form') }}">Subscribe</a></li>
+        </ul>
+      </div>
+      <div class="col-md-2">
+        <div class="fw-semibold small text-white-50 mb-2">DEMOS</div>
+        <ul class="list-unstyled small">
+          <li class="mb-1"><a href="https://fleetnests.com/sample1/" target="_blank">Flying Club</a></li>
+          <li class="mb-1"><a href="https://fleetnests.com/sample2/" target="_blank">Boat Club</a></li>
+        </ul>
+      </div>
+      <div class="col-md-4 text-md-end">
+        <div class="small text-white-50 mb-1">Questions? Email us at</div>
+        <a href="mailto:hello@fleetnests.com" class="text-gold fw-semibold">hello@fleetnests.com</a>
+        <div class="small text-white-50 mt-3">&copy; {{ now.year if now else 2026 }} FleetNests. All rights reserved.</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

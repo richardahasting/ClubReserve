@@ -24,6 +24,7 @@ import email_notify
 import club_resolver
 import master_db
 import vehicle_types
+import marketing as marketing_module
 
 CENTRAL = ZoneInfo("America/Chicago")
 
@@ -85,6 +86,9 @@ def create_app():
     @app.errorhandler(404)
     def not_found(e):
         return render_template("404.html"), 404
+
+    # Marketing site (served on bare root domain — fleetnests.com)
+    app.register_blueprint(marketing_module.bp, url_prefix="")
 
     register_routes(app)
     register_superadmin_routes(app)
