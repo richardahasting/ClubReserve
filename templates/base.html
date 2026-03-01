@@ -4,6 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ club.name if club else 'FleetNests' }}{% endblock %}</title>
+  {# ── Open Graph / Twitter Card ── #}
+  {%- set _og_title -%}{% block og_title %}{{ club.name if club else 'FleetNests' }}{% endblock %}{%- endset -%}
+  {%- set _og_desc -%}{% block og_description %}{{ club.name if club }} — online reservations, check-in/out, maintenance tracking, and member management powered by FleetNests.{% endblock %}{%- endset -%}
+  {%- set _og_image = 'https://fleetnests.com/static/fleetnests-logo-full.png' -%}
+  <meta property="og:type"         content="website">
+  <meta property="og:site_name"    content="{{ club.name if club else 'FleetNests' }}">
+  <meta property="og:title"        content="{{ _og_title | striptags | trim }}">
+  <meta property="og:description"  content="{{ _og_desc | striptags | trim }}">
+  <meta property="og:image"        content="{{ _og_image }}">
+  <meta property="og:url"          content="{{ request.url }}">
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="{{ _og_title | striptags | trim }}">
+  <meta name="twitter:description" content="{{ _og_desc | striptags | trim }}">
+  <meta name="twitter:image"       content="{{ _og_image }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap">
