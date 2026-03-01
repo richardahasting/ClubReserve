@@ -179,14 +179,22 @@
             <input type="text" class="form-control" name="weather_zone" id="weather_zone"
                    value="{{ settings.get('weather_zone', 'TXZ206') }}"
                    placeholder="e.g. TXZ206">
-            <div class="form-text">NWS zone code for marine weather alerts</div>
+            <div class="form-text">
+              Used for marine &amp; severe weather alerts.
+              <a href="https://alerts.weather.gov/search-by-area" target="_blank" rel="noopener">Find your zone code &rarr;</a>
+              (look for the "Zone" column, e.g. <code>TXZ206</code>)
+            </div>
           </div>
           <div class="mb-0">
             <label class="form-label" for="nws_county">NWS County Code</label>
             <input type="text" class="form-control" name="nws_county" id="nws_county"
                    value="{{ settings.get('nws_county', 'TXC091') }}"
                    placeholder="e.g. TXC091">
-            <div class="form-text">NWS county code for flood/flood-watch alerts</div>
+            <div class="form-text">
+              Used for flood &amp; flash-flood watch alerts.
+              <a href="https://alerts.weather.gov/search-by-area" target="_blank" rel="noopener">Find your county code &rarr;</a>
+              (look for the "County" column, e.g. <code>TXC091</code>)
+            </div>
           </div>
           {% else %}
           <div class="mb-0">
@@ -194,7 +202,11 @@
             <input type="text" class="form-control" name="aviation_station" id="aviation_station"
                    value="{{ settings.get('aviation_station', 'KSAT') }}"
                    placeholder="e.g. KSAT">
-            <div class="form-text">ICAO identifier for METAR weather data</div>
+            <div class="form-text">
+              The nearest airport's 4-letter ICAO code — used to pull live METAR data and IFR/LIFR alerts.
+              <a href="https://www.aviationweather.gov/metar" target="_blank" rel="noopener">Find your station &rarr;</a>
+              (search by city or airport name, e.g. <code>KSAT</code> for San Antonio)
+            </div>
           </div>
           {% endif %}
 
