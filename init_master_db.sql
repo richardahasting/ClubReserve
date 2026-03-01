@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS clubs (
     vehicle_type  VARCHAR(10) NOT NULL DEFAULT 'boat' CHECK (vehicle_type IN ('boat', 'plane')),
     db_name       VARCHAR(63) NOT NULL,          -- PostgreSQL database name: club-{short_name}
     db_user       VARCHAR(63) NOT NULL,          -- PostgreSQL user: club_{short_name}_user
+    db_password   VARCHAR(200),                  -- stored at provision time; used by _build_dsn()
     subdomain     VARCHAR(63),                   -- e.g. bentley -> bentley.fleetnests.com
     contact_email VARCHAR(100),
     timezone      VARCHAR(50) DEFAULT 'America/Chicago',
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_id      VARCHAR(200),            -- Stripe session ID or PayPal order ID
     status          VARCHAR(20)  NOT NULL DEFAULT 'pending',  -- pending/paid/provisioned
     notes           TEXT,
+    provisioned_at  TIMESTAMP,
     created_at      TIMESTAMP DEFAULT NOW()
 );
 

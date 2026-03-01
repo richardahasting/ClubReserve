@@ -256,6 +256,43 @@ def notify_waitlist_available(user: dict, desired_date) -> bool:
     )
 
 
+def notify_club_provisioned(contact_email: str, club_name: str,
+                            short_name: str, token: str) -> bool:
+    """
+    Welcome email sent from provision_club() — no Flask g context available.
+    Uses env vars directly for app_url and from address.
+    """
+    if not EMAIL_ENABLED or not contact_email:
+        return False
+    app_url   = os.environ.get("APP_URL", "https://fleetnests.com")
+    from_addr = os.environ.get("EMAIL_FROM", "noreply@fleetnests.com")
+    club_url  = f"{app_url}/{short_name}"
+    body = (
+        f"Hello,\n\n"
+        f"Your FleetNests club '{club_name}' has been provisioned and is ready to use.\n\n"
+        f"  Club URL:  {club_url}/\n"
+        f"  Login:     {club_url}/login\n\n"
+        f"Set your administrator password using the link below (expires in 72 hours):\n\n"
+        f"  {club_url}/set-password/{token}\n\n"
+        f"After setting your password, log in and customize your club — add vehicles,\n"
+        f"invite members, and configure your settings.\n\n"
+        f"— The FleetNests Team"
+    )
+    try:
+        msg = MIMEText(body, "plain")
+        msg["Subject"] = f"Welcome to FleetNests — set up {club_name}"
+        msg["From"]    = from_addr
+        msg["To"]      = contact_email
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=5) as smtp:
+            smtp.sendmail(from_addr, [contact_email], msg.as_string())
+        return True
+    except Exception as exc:
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "Failed to send provisioning welcome email for %s: %s", short_name, exc)
+        return False
+
+
 def notify_demo_lead(prospect_email: str, club_name: str, club_short_name: str,
                      ip_address: str = None) -> bool:
     """Notify richard@hastingtx.org that a prospect accessed a sample site."""

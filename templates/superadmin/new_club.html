@@ -27,6 +27,28 @@
       <div class="card-body p-4">
         <form method="post" id="provisionForm">
 
+          {% if pending_orders %}
+          <div class="mb-4">
+            <label for="order_select" class="form-label fw-semibold">
+              <i class="bi bi-receipt me-1"></i>Link to Order
+              <span class="text-muted fw-normal small">(optional)</span>
+            </label>
+            <select class="form-select" id="order_select" name="order_id">
+              <option value="">— No linked order —</option>
+              {% for o in pending_orders %}
+              <option value="{{ o.id }}"
+                      data-name="{{ o.club_name }}"
+                      data-email="{{ o.contact_email }}"
+                      {% if (form.order_id or '') == o.id|string %}selected{% endif %}>
+                #{{ o.id }} — {{ o.club_name }} ({{ o.contact_email }}) · {{ o.tier }} · {{ o.status }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Selecting an order pre-fills the form and marks it as provisioned.</div>
+          </div>
+          <hr class="my-3">
+          {% endif %}
+
           <div class="mb-3">
             <label for="name" class="form-label fw-semibold">
               Club Name <span class="text-danger">*</span>
@@ -145,6 +167,22 @@ shortInput.addEventListener('input', function () {
   const val = this.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
   dbPreview.textContent = val ? 'club-' + val : 'club-{short_name}';
 });
+
+// Pre-fill from order selection
+const orderSel = document.getElementById('order_select');
+if (orderSel) {
+  orderSel.addEventListener('change', function () {
+    const opt = this.options[this.selectedIndex];
+    if (opt.dataset.name) {
+      document.getElementById('name').value = opt.dataset.name;
+      // Trigger slug auto-population
+      document.getElementById('name').dispatchEvent(new Event('blur'));
+    }
+    if (opt.dataset.email) {
+      document.getElementById('contact_email').value = opt.dataset.email;
+    }
+  });
+}
 
 // Auto-populate short_name from club name
 document.getElementById('name').addEventListener('blur', function () {

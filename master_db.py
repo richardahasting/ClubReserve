@@ -83,13 +83,30 @@ def get_all_clubs() -> list:
 
 def create_club(name: str, short_name: str, vehicle_type: str,
                 db_name: str, db_user: str, subdomain: str,
-                contact_email: str, timezone: str) -> dict | None:
+                contact_email: str, timezone: str,
+                db_password: str = None) -> dict | None:
     return _insert(
         "INSERT INTO clubs (name, short_name, vehicle_type, db_name, db_user, "
-        "subdomain, contact_email, timezone) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        "subdomain, contact_email, timezone, db_password) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING *",
         (name, short_name, vehicle_type, db_name, db_user,
-         subdomain, contact_email, timezone),
+         subdomain, contact_email, timezone, db_password),
+    )
+
+
+def get_provisionable_orders() -> list:
+    """Return paid/trial orders not yet provisioned, for the superadmin dropdown."""
+    return _execute(
+        "SELECT * FROM orders WHERE status IN ('paid', 'pending') "
+        "AND provisioned_at IS NULL ORDER BY created_at DESC"
+    )
+
+
+def mark_order_provisioned(order_id: int):
+    """Set order status to 'provisioned' and record the timestamp."""
+    _execute(
+        "UPDATE orders SET status='provisioned', provisioned_at=NOW() WHERE id=%s",
+        (order_id,), fetch=False,
     )
 
 

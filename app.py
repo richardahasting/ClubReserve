@@ -151,6 +151,11 @@ def register_routes(app: Flask):
             user = auth.authenticate(username, password)
             if user:
                 auth.login_user(user, club_short_name=club["short_name"] if club else None)
+                # First-login guard: redirect to set-password if still using default
+                if auth.check_password("changeme", user["password_hash"]):
+                    token = models.create_password_token(user["id"])
+                    flash("Welcome! Please set a secure password before continuing.", "warning")
+                    return redirect(url_for("set_password", token=token))
                 return redirect(url_for("calendar"))
             flash("Invalid username or password.", "danger")
 
@@ -1686,12 +1691,18 @@ def register_superadmin_routes(app: Flask):
     @app.route("/superadmin/clubs/new", methods=["GET", "POST"])
     @auth.superadmin_required
     def superadmin_new_club():
+        import master_models
+        import master_db as mdb
+        pending_orders = mdb.get_provisionable_orders()
+
         if request.method == "POST":
-            name         = request.form.get("name", "").strip()
-            short_name   = request.form.get("short_name", "").strip().lower()
-            vtype        = request.form.get("vehicle_type", "boat")
+            name          = request.form.get("name", "").strip()
+            short_name    = request.form.get("short_name", "").strip().lower()
+            vtype         = request.form.get("vehicle_type", "boat")
             contact_email = request.form.get("contact_email", "").strip()
-            timezone     = request.form.get("timezone", "America/Chicago").strip()
+            timezone      = request.form.get("timezone", "America/Chicago").strip()
+            order_id_str  = request.form.get("order_id", "").strip()
+            order_id      = int(order_id_str) if order_id_str.isdigit() else None
 
             if not name or not short_name:
                 flash("Club name and short name are required.", "danger")
@@ -1699,25 +1710,29 @@ def register_superadmin_routes(app: Flask):
                 flash("Vehicle type must be 'boat' or 'plane'.", "danger")
             else:
                 try:
-                    import master_models
                     result = master_models.provision_club(
                         name, short_name, vtype, contact_email, timezone)
-                    import master_db as mdb
                     mdb.log_master_action(
                         auth.current_super_admin()["id"],
                         "club_provisioned", "club",
                         result.get("id"),
-                        {"short_name": short_name, "vehicle_type": vtype},
+                        {"short_name": short_name, "vehicle_type": vtype,
+                         "from_order": order_id},
                     )
+                    if order_id:
+                        mdb.mark_order_provisioned(order_id)
                     flash(
-                        f"Club '{name}' provisioned. DB user password: {result.get('_db_password', '(see logs)')}",
+                        f"Club '{name}' provisioned at fleetnests.com/{short_name}/. "
+                        f"Welcome email sent to {contact_email or '(none)'}.",
                         "success",
                     )
                     return redirect(url_for("superadmin_dashboard"))
                 except Exception as exc:
                     flash(f"Provisioning failed: {exc}", "danger")
 
-        return render_template("superadmin/new_club.html")
+        return render_template("superadmin/new_club.html",
+                               pending_orders=pending_orders,
+                               form=request.form if request.method == "POST" else {})
 
     @app.route("/superadmin/clubs/<int:club_id>", methods=["GET", "POST"])
     @auth.superadmin_required

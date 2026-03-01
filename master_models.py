@@ -109,6 +109,7 @@ def provision_club(name: str, short_name: str, vehicle_type: str,
     # Generate a random password for the new DB user
     import secrets
     db_password = secrets.token_urlsafe(24)
+    admin_token = None
 
     log.info("Provisioning club: %s (vehicle_type=%s)", short_name, vehicle_type)
 
@@ -174,6 +175,19 @@ def provision_club(name: str, short_name: str, vehicle_type: str,
                 )
             log.info("Seeded club_settings for %s", short_name)
 
+        # 5c. Set contact email on admin user + create a password-set token
+        if contact_email:
+            import secrets as _sec
+            from datetime import datetime, timedelta
+            admin_token = _sec.token_urlsafe(32)
+            expires = datetime.now() + timedelta(hours=72)
+            cur.execute(
+                "UPDATE users SET email=%s, password_reset_token=%s, "
+                "password_reset_expires=%s WHERE username='admin'",
+                (contact_email, admin_token, expires),
+            )
+            log.info("Seeded admin email + password-set token for %s", short_name)
+
         seed_conn.commit()
     finally:
         seed_conn.close()
@@ -188,13 +202,18 @@ def provision_club(name: str, short_name: str, vehicle_type: str,
         subdomain=short_name,
         contact_email=contact_email,
         timezone=timezone,
+        db_password=db_password,
     )
     log.info("Master clubs record created: id=%s", club_row["id"] if club_row else "?")
 
-    # 7. Invalidate club cache so next request re-reads from master
+    # 7. Invalidate club cache so next request re-reads from master (now includes db_password)
     club_resolver.invalidate_cache(short_name)
 
-    # Return password in result so caller can display / store it
+    # 8. Send welcome email with password-set link
+    if contact_email and admin_token:
+        import email_notify
+        email_notify.notify_club_provisioned(contact_email, name, short_name, admin_token)
+
     result = dict(master_db.get_club_by_short_name(short_name) or {})
-    result["_db_password"] = db_password
+    result["_db_password"] = db_password  # kept for logging; no longer shown in UI
     return result

@@ -52,9 +52,10 @@ def _resolve_short_name(host: str) -> str | None:
 def _build_dsn(club: dict) -> str:
     """
     Construct the DSN for a club database.
-    Password is loaded from env var: DB_PASS_{DB_USER_UPPER}
-      e.g. club_bentley_user → DB_PASS_CLUB_BENTLEY_USER
-    Falls back to DATABASE_URL for backward-compat with single-club deploys.
+    Resolution order:
+      1. Env var DB_PASS_{DB_USER_UPPER}  (existing clubs / manual override)
+      2. club['db_password'] from master DB (clubs provisioned after schema migration)
+      3. DATABASE_URL fallback             (single-club dev mode)
     """
     db_user = club.get("db_user")
     db_name = club.get("db_name")
@@ -63,8 +64,13 @@ def _build_dsn(club: dict) -> str:
     if not db_user:
         return os.environ.get("DATABASE_URL", "")
 
+    # 1. Env var (highest priority — allows manual override)
     env_key = f"DB_PASS_{db_user.upper()}"
     password = os.environ.get(env_key)
+
+    # 2. Master DB stored password (new clubs work without .env change or restart)
+    if not password:
+        password = club.get("db_password")
 
     if password:
         host = os.environ.get("PG_HOST", "localhost")
