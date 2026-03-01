@@ -1,0 +1,267 @@
+{% extends "superadmin/base.html" %}
+{% block title %}{{ club.name }} — FleetNests Super Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="mb-0 fw-bold">{{ club.name }}</h4>
+    <div class="text-muted small">
+      <code>{{ club.short_name }}</code>
+      &middot;
+      {% if club.vehicle_type == 'plane' %}
+        <i class="bi bi-airplane text-info"></i> Flying Club
+      {% else %}
+        <i class="bi bi-water text-primary"></i> Boat Club
+      {% endif %}
+      &middot;
+      {% if club.is_active %}
+        <span class="badge bg-success">Active</span>
+      {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  {# ── Left: Subscription / Pricing ── #}
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-credit-card me-2" style="color:#9b59b6"></i>Subscription &amp; Price Lock
+      </div>
+      <div class="card-body p-4">
+
+        <form method="post">
+          <input type="hidden" name="action" value="save_subscription">
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Billing period</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="billing" id="bill_annual" value="annual"
+                         {% if not sub or sub.billing != 'monthly' %}checked{% endif %}>
+                  <label class="form-check-label" for="bill_annual">Annual</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="billing" id="bill_monthly" value="monthly"
+                         {% if sub and sub.billing == 'monthly' %}checked{% endif %}>
+                  <label class="form-check-label" for="bill_monthly">Monthly</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold" for="amount_cents">
+                Locked rate ($/period)
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="amount_cents" name="amount_cents"
+                       min="0" step="0.01" placeholder="85.00"
+                       value="{{ '%.2f' | format(sub.amount_cents / 100) if sub and sub.amount_cents else '' }}">
+              </div>
+              <div class="form-text">Enter the exact dollar amount per billing period.</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold" for="price_locked_until">
+                Price locked until <span class="text-muted fw-normal">(annual only)</span>
+              </label>
+              <input type="date" class="form-control" id="price_locked_until" name="price_locked_until"
+                     value="{{ sub.price_locked_until.isoformat() if sub and sub.price_locked_until else '' }}">
+              <div class="form-text">Leave blank for monthly plans. Typically start date + 5 years.</div>
+            </div>
+
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold" for="renewal_date">Next renewal date</label>
+              <input type="date" class="form-control" id="renewal_date" name="renewal_date"
+                     value="{{ sub.renewal_date.isoformat() if sub and sub.renewal_date else '' }}">
+            </div>
+          </div>
+
+          {# Link to a paid order #}
+          {% if pending_orders %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="order_id">Link to order</label>
+            <select class="form-select" id="order_id" name="order_id">
+              <option value="">— None —</option>
+              {% for o in pending_orders %}
+              <option value="{{ o.id }}"
+                      {% if sub and sub.order_id == o.id %}selected{% endif %}>
+                #{{ o.id }} — {{ o.contact_name }} &lt;{{ o.contact_email }}&gt;
+                — {{ o.billing }} — ${{ '%.2f' | format(o.amount_cents/100) }}
+                — {{ o.created_at.strftime('%b %d, %Y') }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Match this club to the customer's payment record.</div>
+          </div>
+          {% elif sub and sub.order_id %}
+          <div class="mb-3">
+            <div class="form-label fw-semibold">Linked order</div>
+            <div class="text-muted small">Order #{{ sub.order_id }}</div>
+            <input type="hidden" name="order_id" value="{{ sub.order_id }}">
+          </div>
+          {% endif %}
+
+          <hr>
+
+          {# Quick-fill helper #}
+          <div class="mb-3">
+            <div class="fw-semibold small mb-2">
+              <i class="bi bi-magic me-1 text-warning"></i>Quick-fill from order
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              {% if pending_orders %}
+                {% for o in pending_orders %}
+                <button type="button" class="btn btn-sm btn-outline-warning"
+                        onclick="fillFromOrder({{ o.amount_cents }}, '{{ o.billing }}', '{{ o.id }}')">
+                  #{{ o.id }} · ${{ '%.2f' | format(o.amount_cents/100) }}/{{ 'mo' if o.billing == 'monthly' else 'yr' }}
+                </button>
+                {% endfor %}
+              {% else %}
+                <span class="text-muted small">No matching paid orders found for "{{ club.name }}".</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn"
+                    style="background:#9b59b6;border-color:#8e44ad;color:#fff;">
+              <i class="bi bi-floppy me-1"></i>Save Subscription
+            </button>
+            <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Right: Summary card ── #}
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-info-circle me-2"></i>Current subscription
+      </div>
+      <div class="card-body">
+        {% if sub %}
+          <dl class="row mb-0 small">
+            <dt class="col-6 text-muted">Billing</dt>
+            <dd class="col-6">{{ sub.billing | title }}</dd>
+
+            <dt class="col-6 text-muted">Locked rate</dt>
+            <dd class="col-6 fw-semibold">
+              {% if sub.amount_cents %}
+                ${{ '%.2f' | format(sub.amount_cents / 100) }}/{{ 'mo' if sub.billing == 'monthly' else 'yr' }}
+              {% else %}—{% endif %}
+            </dd>
+
+            <dt class="col-6 text-muted">Price locked until</dt>
+            <dd class="col-6">
+              {% if sub.price_locked_until %}
+                {% set today_iso = now.date().isoformat() if now else '' %}
+                {% if sub.price_locked_until.isoformat() < today_iso %}
+                  <span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>
+                    Expired {{ sub.price_locked_until.strftime('%b %d, %Y') }}
+                  </span>
+                {% else %}
+                  <span class="text-success"><i class="bi bi-patch-check me-1"></i>
+                    {{ sub.price_locked_until.strftime('%b %d, %Y') }}
+                  </span>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">Not set{% if sub.billing == 'annual' %} <i class="bi bi-exclamation-circle text-warning"></i>{% endif %}</span>
+              {% endif %}
+            </dd>
+
+            <dt class="col-6 text-muted">Next renewal</dt>
+            <dd class="col-6">{{ sub.renewal_date.strftime('%b %d, %Y') if sub.renewal_date else '—' }}</dd>
+
+            <dt class="col-6 text-muted">Order #</dt>
+            <dd class="col-6">{{ sub.order_id or '—' }}</dd>
+          </dl>
+        {% else %}
+          <div class="text-muted text-center py-3 small">
+            <i class="bi bi-exclamation-circle d-block fs-3 mb-2"></i>
+            No subscription record yet.<br>Fill in the form and save.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-building me-2"></i>Club info
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Short name</dt>
+          <dd class="col-7"><code>{{ club.short_name }}</code></dd>
+
+          <dt class="col-5 text-muted">Database</dt>
+          <dd class="col-7"><code>{{ club.db_name }}</code></dd>
+
+          <dt class="col-5 text-muted">Contact</dt>
+          <dd class="col-7">{{ club.contact_email or '—' }}</dd>
+
+          <dt class="col-5 text-muted">Provisioned</dt>
+          <dd class="col-7">{{ club.created_at.strftime('%b %d, %Y') if club.created_at else '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const GUARANTEE_YEARS = 5;
+
+function fillFromOrder(amountCents, billing, orderId) {
+  document.getElementById('amount_cents').value = (amountCents / 100).toFixed(2);
+
+  // Set billing radio
+  const radio = document.querySelector('input[name="billing"][value="' + billing + '"]');
+  if (radio) radio.checked = true;
+
+  // Auto-compute lock date for annual plans
+  if (billing === 'annual') {
+    const lockDate = new Date();
+    lockDate.setFullYear(lockDate.getFullYear() + GUARANTEE_YEARS);
+    document.getElementById('price_locked_until').value = lockDate.toISOString().split('T')[0];
+  } else {
+    document.getElementById('price_locked_until').value = '';
+  }
+
+  // Auto-compute next renewal
+  const renewal = new Date();
+  if (billing === 'annual') {
+    renewal.setFullYear(renewal.getFullYear() + 1);
+  } else {
+    renewal.setMonth(renewal.getMonth() + 1);
+  }
+  document.getElementById('renewal_date').value = renewal.toISOString().split('T')[0];
+
+  // Set order select if present
+  const sel = document.getElementById('order_id');
+  if (sel) sel.value = orderId;
+}
+
+// When billing changes, toggle price_locked_until requirement hint
+document.querySelectorAll('input[name="billing"]').forEach(r => r.addEventListener('change', function() {
+  const lockField = document.getElementById('price_locked_until');
+  if (lockField) {
+    lockField.closest('.col-sm-6').style.opacity = this.value === 'annual' ? '1' : '0.5';
+  }
+}));
+</script>
+{% endblock %}

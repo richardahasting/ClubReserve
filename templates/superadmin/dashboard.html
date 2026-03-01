@@ -25,52 +25,99 @@
           <th>Club Name</th>
           <th>Short Name</th>
           <th class="text-center">Type</th>
-          <th>Subdomain</th>
-          <th>Database</th>
-          <th class="text-center">Status</th>
-          <th>Provisioned</th>
-          <th></th>
+          <th>Status</th>
+          <th>Billing</th>
+          <th>Rate (locked)</th>
+          <th>Price Lock Expires</th>
+          <th>Renewal</th>
+          <th class="text-end">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for club in clubs %}
+        {% set sub = subs_by_club.get(club.id) %}
         <tr>
-          <td class="fw-semibold">{{ club.name }}</td>
+          <td>
+            <a href="{{ url_for('superadmin_club_detail', club_id=club.id) }}"
+               class="fw-semibold text-decoration-none" style="color:inherit">
+              {{ club.name }}
+            </a>
+          </td>
           <td><code>{{ club.short_name }}</code></td>
           <td class="text-center">
             {% if club.vehicle_type == 'plane' %}
-              <span class="badge bg-info text-dark">
-                <i class="bi bi-airplane me-1"></i>Plane
-              </span>
+              <span class="badge bg-info text-dark"><i class="bi bi-airplane me-1"></i>Plane</span>
             {% else %}
-              <span class="badge bg-primary">
-                <i class="bi bi-water me-1"></i>Boat
-              </span>
+              <span class="badge bg-primary"><i class="bi bi-water me-1"></i>Boat</span>
             {% endif %}
           </td>
-          <td class="text-muted small">{{ club.subdomain or club.short_name }}.fleetnests.com</td>
-          <td class="text-muted small"><code>{{ club.db_name }}</code></td>
-          <td class="text-center">
+          <td>
             {% if club.is_active %}
               <span class="badge bg-success">Active</span>
             {% else %}
               <span class="badge bg-secondary">Inactive</span>
             {% endif %}
           </td>
-          <td class="text-muted small text-nowrap">
-            {{ club.created_at.strftime('%b %d, %Y') if club.created_at else '—' }}
-          </td>
-          <td class="text-end">
+
+          {# Subscription columns #}
+          {% if sub %}
+            <td class="small">
+              {% if sub.billing == 'monthly' %}
+                <span class="badge bg-light text-dark border">Monthly</span>
+              {% else %}
+                <span class="badge bg-light text-dark border">Annual</span>
+              {% endif %}
+            </td>
+            <td class="small fw-semibold">
+              {% if sub.amount_cents %}
+                ${{ "%.2f" | format(sub.amount_cents / 100) }}
+                <span class="text-muted fw-normal">/{{ 'mo' if sub.billing == 'monthly' else 'yr' }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="small">
+              {% if sub.price_locked_until %}
+                {% set today = now.date() if now else none %}
+                {% if today and sub.price_locked_until < today %}
+                  <span class="text-danger fw-semibold">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Expired {{ sub.price_locked_until.strftime('%b %d, %Y') }}
+                  </span>
+                {% else %}
+                  <span class="text-success">
+                    <i class="bi bi-patch-check me-1"></i>{{ sub.price_locked_until.strftime('%b %d, %Y') }}
+                  </span>
+                {% endif %}
+              {% elif sub.billing == 'annual' %}
+                <span class="text-warning small"><i class="bi bi-exclamation-circle me-1"></i>Not set</span>
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-nowrap">
+              {{ sub.renewal_date.strftime('%b %d, %Y') if sub.renewal_date else '—' }}
+            </td>
+          {% else %}
+            <td colspan="4" class="text-muted small fst-italic">
+              No subscription —
+              <a href="{{ url_for('superadmin_club_detail', club_id=club.id) }}">set up</a>
+            </td>
+          {% endif %}
+
+          <td class="text-end text-nowrap">
+            <a href="{{ url_for('superadmin_club_detail', club_id=club.id) }}"
+               class="btn btn-sm btn-outline-secondary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
             {% if club.is_active %}
             <form method="post"
                   action="{{ url_for('superadmin_deactivate_club', club_id=club.id) }}"
+                  class="d-inline"
                   onsubmit="return confirm('Deactivate {{ club.name }}? Members will lose access.');">
               <button type="submit" class="btn btn-sm btn-outline-danger">
-                <i class="bi bi-pause-circle me-1"></i>Deactivate
+                <i class="bi bi-pause-circle"></i>
               </button>
             </form>
-            {% else %}
-            <span class="text-muted small">—</span>
             {% endif %}
           </td>
         </tr>

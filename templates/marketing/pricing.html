@@ -1,6 +1,6 @@
 {% extends "marketing/base.html" %}
 {% block title %}Pricing — FleetNests{% endblock %}
-{% block og_description %}Simple, transparent pricing for boat and flying clubs. From $35/yr — includes every feature, unlimited members, and setup within one business day.{% endblock %}
+{% block og_description %}Simple, transparent pricing for boat and flying clubs. From $6/mo — full features, 5-year price guarantee for annual plans. No long-term contracts.{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -8,6 +8,16 @@
   .tier-card.popular { border-color:var(--fn-gold); }
   .tier-card:hover { border-color:var(--fn-gold); box-shadow:0 8px 28px rgba(10,35,66,.12); }
   .calc-box { background:var(--fn-light); border-radius:1rem; border:1px solid #dee2e6; }
+  .billing-toggle { background:#e9ecef; border-radius:50px; padding:4px; display:inline-flex; gap:4px; }
+  .billing-toggle label { border-radius:50px; padding:.35rem 1.2rem; cursor:pointer; font-weight:600;
+                          font-size:.875rem; transition:all .2s; color:#666; }
+  .billing-toggle input:checked + label { background:#fff; color:var(--fn-navy);
+                                          box-shadow:0 2px 6px rgba(0,0,0,.12); }
+  .billing-toggle input { display:none; }
+  .guarantee-badge { background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.4);
+                     border-radius:.5rem; color:var(--fn-navy); }
+  .competitor-table th { font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; }
+  .price-per-mo { font-size:.8rem; color:#888; }
 </style>
 {% endblock %}
 
@@ -16,11 +26,11 @@
 <div class="bg-navy text-white py-5">
   <div class="container text-center py-3">
     <h1 class="fn-brand fw-bold display-5">Simple, Transparent Pricing</h1>
-    <p class="text-white-50 lead">One low annual fee covers everything — members, craft, features, support.</p>
+    <p class="text-white-50 lead">Everything included. No feature tiers. No surprise fees.</p>
     {% if early_bird %}
     <div class="alert alert-warning d-inline-block px-4 py-2 rounded-pill border-0 fw-semibold mt-2">
       <i class="bi bi-lightning-charge-fill me-1"></i>
-      Early Bird: 40% off your first year — expires {{ early_bird_deadline }}
+      Early Bird: {{ early_bird_pct }}% off your first year — expires {{ early_bird_deadline }}
     </div>
     {% endif %}
   </div>
@@ -28,21 +38,53 @@
 
 <div class="container py-5">
 
-  {# ── Plan Cards ── #}
-  <div class="row g-4 justify-content-center mb-5">
+  {# ── Billing Toggle ── #}
+  <div class="text-center mb-5">
+    <div class="billing-toggle" id="billingToggle">
+      <input type="radio" name="billing_mode" id="bm_monthly" value="monthly">
+      <label for="bm_monthly">Monthly</label>
+      <input type="radio" name="billing_mode" id="bm_annual" value="annual" checked>
+      <label for="bm_annual">Annual <span class="badge bg-success ms-1" style="font-size:.65rem">Save 17%</span></label>
+    </div>
+    <div class="mt-2 small text-muted" id="billing_sub">
+      Annual plans include a <strong>{{ price_guarantee_years }}-year price guarantee</strong> — your rate never increases.
+    </div>
+  </div>
 
-    {# Path #}
-    {% set base = tier_prices.path %}
-    {% set eb = (base * 0.6) | round | int %}
+  {# ── Plan Cards ── #}
+  <div class="row g-4 justify-content-center mb-5" id="plan_cards">
+
+    {# Shared Path #}
     <div class="col-md-4">
       <div class="tier-card p-4 h-100 bg-white">
         <div class="fw-semibold text-muted small mb-2">STARTER</div>
-        <h2 class="fn-brand fw-bold">
-          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
-          <span class="fs-6 fw-normal text-muted">/year</span>
-        </h2>
+
+        <div class="price-block-annual">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_annual + url_annual.path) / 100) }}</span>
+              ${{ "%.0f" | format((base_annual + url_annual.path) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_annual + url_annual.path) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/year</span>
+          </h2>
+          <div class="price-per-mo">(${{ "%.2f" | format((base_annual + url_annual.path) / 1200) }}/mo billed annually)</div>
+        </div>
+        <div class="price-block-monthly" style="display:none">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_monthly + url_monthly.path) / 100) }}</span>
+              ${{ "%.2f" | format((base_monthly + url_monthly.path) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_monthly + url_monthly.path) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/month</span>
+          </h2>
+        </div>
+
         <div class="badge bg-light text-muted border mb-3">fleetnests.com/<em>yourclub</em></div>
-        <ul class="list-unstyled small">
+        <ul class="list-unstyled small mb-4">
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Full reservation calendar</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Check-out / check-in workflow</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Maintenance scheduling &amp; logs</li>
@@ -51,62 +93,126 @@
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Custom branding &amp; colors</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Photo gallery</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
-          <li class="mb-2 text-muted"><i class="bi bi-link-45deg me-2"></i>Shared domain: fleetnests.com/clubname</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>
+            <span class="extra-annual">+${{ "%.2f" | format(craft_annual/100) }}/yr per additional craft</span>
+            <span class="extra-monthly" style="display:none">+${{ "%.2f" | format(craft_monthly/100) }}/mo per additional craft</span>
+          </li>
         </ul>
-        <a href="{{ url_for('marketing.order_form', tier='path') }}" class="btn btn-outline-secondary w-100 mt-3">Choose Starter</a>
+        <a href="{{ url_for('marketing.order_form', tier='path') }}" class="btn btn-outline-secondary w-100 mt-auto">Choose Starter</a>
       </div>
     </div>
 
     {# Subdomain — popular #}
-    {% set base = tier_prices.subdomain %}
-    {% set eb = (base * 0.6) | round | int %}
     <div class="col-md-4">
       <div class="tier-card popular p-4 h-100 bg-white position-relative">
         <span class="badge position-absolute top-0 start-50 translate-middle px-3 py-2 rounded-pill"
               style="background:var(--fn-gold);font-size:.8rem">&#11088; Most Popular</span>
         <div class="fw-semibold text-muted small mb-2 mt-3">PROFESSIONAL</div>
-        <h2 class="fn-brand fw-bold">
-          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
-          <span class="fs-6 fw-normal text-muted">/year</span>
-        </h2>
+
+        <div class="price-block-annual">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_annual + url_annual.subdomain) / 100) }}</span>
+              ${{ "%.0f" | format((base_annual + url_annual.subdomain) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_annual + url_annual.subdomain) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/year</span>
+          </h2>
+          <div class="price-per-mo">(${{ "%.2f" | format((base_annual + url_annual.subdomain) / 1200) }}/mo billed annually)</div>
+        </div>
+        <div class="price-block-monthly" style="display:none">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_monthly + url_monthly.subdomain) / 100) }}</span>
+              ${{ "%.2f" | format((base_monthly + url_monthly.subdomain) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_monthly + url_monthly.subdomain) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/month</span>
+          </h2>
+        </div>
+
         <div class="badge bg-light text-muted border mb-3"><em>yourclub</em>.fleetnests.com</div>
-        <ul class="list-unstyled small">
+        <ul class="list-unstyled small mb-4">
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Starter</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Your own subdomain</strong></li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Cleaner, more memorable URL</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Easier for members to bookmark</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>
+            <span class="extra-annual">+${{ "%.2f" | format(craft_annual/100) }}/yr per additional craft</span>
+            <span class="extra-monthly" style="display:none">+${{ "%.2f" | format(craft_monthly/100) }}/mo per additional craft</span>
+          </li>
         </ul>
-        <a href="{{ url_for('marketing.order_form', tier='subdomain') }}" class="btn btn-gold w-100 mt-3">Choose Professional</a>
+        <a href="{{ url_for('marketing.order_form', tier='subdomain') }}" class="btn btn-gold w-100 mt-auto">Choose Professional</a>
       </div>
     </div>
 
     {# Custom domain #}
-    {% set base = tier_prices.custom %}
-    {% set eb = (base * 0.6) | round | int %}
     <div class="col-md-4">
       <div class="tier-card p-4 h-100 bg-white">
         <div class="fw-semibold text-muted small mb-2">PREMIUM</div>
-        <h2 class="fn-brand fw-bold">
-          {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
-          <span class="fs-6 fw-normal text-muted">/year + domain</span>
-        </h2>
+
+        <div class="price-block-annual">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_annual + url_annual.custom) / 100) }}</span>
+              ${{ "%.0f" | format((base_annual + url_annual.custom) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_annual + url_annual.custom) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/year + domain</span>
+          </h2>
+          <div class="price-per-mo">(${{ "%.2f" | format((base_annual + url_annual.custom) / 1200) }}/mo billed annually)</div>
+        </div>
+        <div class="price-block-monthly" style="display:none">
+          <h2 class="fn-brand fw-bold mb-0">
+            {% if early_bird %}
+              <span class="text-decoration-line-through text-muted me-2 h4">${{ "%.0f" | format((base_monthly + url_monthly.custom) / 100) }}</span>
+              ${{ "%.2f" | format((base_monthly + url_monthly.custom) * (1 - early_bird_pct/100) / 100) }}
+            {% else %}
+              ${{ "%.0f" | format((base_monthly + url_monthly.custom) / 100) }}
+            {% endif %}
+            <span class="fs-6 fw-normal text-muted">/month + domain</span>
+          </h2>
+        </div>
+
         <div class="badge bg-light text-muted border mb-3"><em>yourclub</em>.com (any domain)</div>
-        <ul class="list-unstyled small">
+        <ul class="list-unstyled small mb-4">
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Professional</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Your own custom domain</strong></li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Complete brand ownership</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>yourclub.com or any domain you own</li>
           <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(extra_craft_cents/100) }}/yr per additional craft</li>
+          <li class="mb-2 text-muted"><i class="bi bi-plus-circle me-2"></i>
+            <span class="extra-annual">+${{ "%.2f" | format(craft_annual/100) }}/yr per additional craft</span>
+            <span class="extra-monthly" style="display:none">+${{ "%.2f" | format(craft_monthly/100) }}/mo per additional craft</span>
+          </li>
           <li class="mb-2 text-muted"><i class="bi bi-globe me-2"></i>+ domain registration (~$15–20/yr)</li>
         </ul>
-        <a href="{{ url_for('marketing.order_form', tier='custom') }}" class="btn btn-outline-secondary w-100 mt-3">Choose Premium</a>
+        <a href="{{ url_for('marketing.order_form', tier='custom') }}" class="btn btn-outline-secondary w-100 mt-auto">Choose Premium</a>
       </div>
     </div>
 
+  </div>
+
+  {# ── 5-year price guarantee ── #}
+  <div class="row justify-content-center mb-5" id="guarantee_row">
+    <div class="col-md-10">
+      <div class="guarantee-badge p-4 d-flex align-items-start gap-3">
+        <i class="bi bi-patch-check-fill text-gold fs-2 flex-shrink-0 mt-1"></i>
+        <div>
+          <div class="fw-bold fn-brand mb-1">{{ price_guarantee_years }}-Year Price Guarantee — Annual plans only</div>
+          <div class="small text-muted">
+            When you subscribe annually, your rate is locked for {{ price_guarantee_years }} years.
+            No matter how the product grows or what we add, your price never increases during that window.
+            Monthly subscribers get full access to all features but are subject to future pricing adjustments.
+            <strong>Annual billing is the smart long-term choice.</strong>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   {# ── Live Calculator ── #}
@@ -117,7 +223,16 @@
           <i class="bi bi-calculator me-2 text-gold"></i>Price Calculator
         </h4>
         <div class="mb-3">
-          <label class="form-label fw-semibold">Choose your plan</label>
+          <label class="form-label fw-semibold">Billing period</label>
+          <div class="d-flex flex-wrap gap-2">
+            <input type="radio" class="btn-check" name="calc_billing" id="cb_annual" value="annual" checked>
+            <label class="btn btn-outline-secondary btn-sm" for="cb_annual">Annual <small class="text-success">(Save 17% + price lock)</small></label>
+            <input type="radio" class="btn-check" name="calc_billing" id="cb_monthly" value="monthly">
+            <label class="btn btn-outline-secondary btn-sm" for="cb_monthly">Monthly</label>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Choose your URL plan</label>
           <div class="d-flex flex-wrap gap-2">
             <input type="radio" class="btn-check" name="calc_tier" id="ct_path" value="path">
             <label class="btn btn-outline-secondary btn-sm" for="ct_path">Starter</label>
@@ -131,14 +246,14 @@
           <label class="form-label fw-semibold" for="calc_craft">Number of craft in your fleet</label>
           <div class="d-flex align-items-center gap-3">
             <input type="number" id="calc_craft" class="form-control" style="max-width:100px" min="1" max="50" value="1">
-            <span class="text-muted small">First craft included — ${{ "%.2f" | format(extra_craft_cents/100) }}/yr each additional</span>
+            <span class="text-muted small">First craft included in base price</span>
           </div>
         </div>
         <div id="calc_result" class="p-3 rounded-2 bg-white border">
           <!-- populated by JS -->
         </div>
         <div class="mt-3 text-center">
-          <a id="calc_cta" href="{{ url_for('marketing.order_form', tier='subdomain', craft=1) }}"
+          <a id="calc_cta" href="{{ url_for('marketing.order_form', tier='subdomain', billing='annual', craft=1) }}"
              class="btn btn-gold px-5">
             <i class="bi bi-cart me-2"></i>Order This Plan
           </a>
@@ -150,6 +265,47 @@
     </div>
   </div>
 
+  {# ── Competitor comparison ── #}
+  <div class="row justify-content-center mb-5">
+    <div class="col-md-10">
+      <h4 class="fn-brand fw-bold text-center mb-4">How we compare</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered competitor-table">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th class="text-center" style="color:var(--fn-navy)">FleetNests</th>
+              <th class="text-center text-muted">Typical Competitors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set rows = [
+              ("Starting price",           "$6/mo",                   "$30–$100+/mo"),
+              ("Annual option",            "Yes — save 17%",          "Often annual-only"),
+              ("Price guarantee",          "5-yr lock (annual)",      "Prices increase yearly"),
+              ("Feature tiers",            "All features, every plan","Basic / Pro / Enterprise"),
+              ("Per-member fees",          "None — unlimited members","Common"),
+              ("Setup fee",                "None",                    "Common ($200–$500)"),
+              ("Custom branding",          "All plans",               "Premium tier only"),
+              ("Live in &lt;1 business day","Yes",                    "Weeks of onboarding"),
+              ("Built-in feedback system", "Yes (AI-routed)",         "No"),
+            ] %}
+            {% for feature, fn_val, comp_val in rows %}
+            <tr>
+              <td class="fw-semibold small">{{ feature | safe }}</td>
+              <td class="text-center small">
+                <i class="bi bi-check-circle-fill text-success me-1"></i>{{ fn_val }}
+              </td>
+              <td class="text-center small text-muted">{{ comp_val }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted small text-center mt-2">Competitor pricing based on publicly available information, March 2026. Subject to change.</p>
+    </div>
+  </div>
+
   {# ── FAQ ── #}
   <div class="row justify-content-center">
     <div class="col-md-8">
@@ -158,18 +314,20 @@
         {% set faqs = [
           ("What's included in all plans?",
            "All plans include the full reservation calendar, member management, check-out/check-in workflow, maintenance tracking, weather alerts, fuel logging, incident reports, message board, photo gallery, custom branding, iCal feed, and the built-in feedback system. There are no feature tiers — every club gets everything."),
+          ("What's the difference between monthly and annual billing?",
+           "Both billing periods give you identical features. Annual billing costs ~17% less and locks in your price for 5 years — no increases. Monthly billing is flexible with no long-term commitment, but rates may change over time. We recommend annual for most clubs."),
+          ("How does the 5-year price guarantee work?",
+           "When you subscribe on an annual plan, your rate is locked for 5 years from your start date. If we raise prices, your renewal stays at your original rate. The guarantee applies to annual subscribers only; monthly plans are not covered."),
           ("How does the free trial work?",
            "Submit the trial form with your club name and contact info — no credit card required. We'll provision your club at fleetnests.com/clubname within one business day and email you your admin login. You get 30 days to explore the full system with your real data. Upgrade at any time, or let it expire with no charge."),
           ("What counts as a 'craft'?",
-           "Each boat or aircraft in your fleet is one craft. The first craft is included in every plan. Each additional craft adds $12.50 per year (Early Bird: $7.50/yr). If your club has 3 boats, that's the base plan price plus 2 x $12.50 = $25 extra per year."),
-          ("Can I use my own logo and colors?",
-           "Yes — all plans include full custom branding. Upload your logo, choose your primary and accent colors, add a hero banner photo, and populate a club gallery. Your members see a site that looks like your club, not generic software."),
+           "Each boat or aircraft in your fleet is one craft. The first craft is included in every plan. Additional craft are billed at $39/yr ($4/mo) each. If your club has 3 boats, that's the base plan plus 2 additional craft."),
+          ("Can I switch between monthly and annual?",
+           "Yes. You can upgrade from monthly to annual at any time and get a prorated credit. Downgrading from annual to monthly takes effect at your next renewal date."),
           ("What is the difference between the URL options?",
-           "Starter: your club lives at fleetnests.com/yourclub. Professional: your club gets its own subdomain at yourclub.fleetnests.com. Premium: you provide your own domain (e.g., yourclub.com) which we configure. You pay domain registration separately (~$15-20/yr)."),
+           "Starter: your club lives at fleetnests.com/yourclub. Professional: your club gets its own subdomain at yourclub.fleetnests.com. Premium: you provide your own domain (e.g., yourclub.com) which we configure for you. Domain registration (~$15-20/yr) is separate."),
           ("How do I request a new feature?",
            "Every page in FleetNests has a built-in Feedback button. Click it, describe your idea, and optionally attach a screenshot. The AI routes feature requests directly to our development inbox. Most of our features started as member feedback."),
-          ("What if I need to add craft later?",
-           "Contact us and we will update your subscription. Additional craft pricing is prorated to your annual renewal."),
         ] %}
         {% for q, a in faqs %}
         <div class="accordion-item border-0 border-bottom">
@@ -193,8 +351,11 @@
 
 {% block extra_scripts %}
 <script>
-const PRICES = { path: {{ tier_prices.path }}, subdomain: {{ tier_prices.subdomain }}, custom: {{ tier_prices.custom }} };
-const EXTRA = {{ extra_craft_cents }};
+const PRICES = {
+  monthly: { path: {{ base_monthly + url_monthly.path }}, subdomain: {{ base_monthly + url_monthly.subdomain }}, custom: {{ base_monthly + url_monthly.custom }} },
+  annual:  { path: {{ base_annual  + url_annual.path  }}, subdomain: {{ base_annual  + url_annual.subdomain  }}, custom: {{ base_annual  + url_annual.custom  }} },
+};
+const EXTRA = { monthly: {{ craft_monthly }}, annual: {{ craft_annual }} };
 const EB_PCT = {{ early_bird_pct }};
 const IS_EB = {{ 'true' if early_bird else 'false' }};
 const TIER_LABELS = { path: 'Starter', subdomain: 'Professional', custom: 'Premium' };
@@ -202,13 +363,14 @@ const TIER_LABELS = { path: 'Starter', subdomain: 'Professional', custom: 'Premi
 function fmtMoney(cents) { return '$' + (cents / 100).toFixed(2); }
 
 function calcUpdate() {
-  const tier  = document.querySelector('input[name="calc_tier"]:checked')?.value || 'subdomain';
-  const craft = Math.max(1, parseInt(document.getElementById('calc_craft').value) || 1);
-  const base  = PRICES[tier] || 0;
-  const extra = Math.max(0, craft - 1) * EXTRA;
-  const sub   = base + extra;
-  const disc  = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
-  const total = sub - disc;
+  const billing = document.querySelector('input[name="calc_billing"]:checked')?.value || 'annual';
+  const tier    = document.querySelector('input[name="calc_tier"]:checked')?.value || 'subdomain';
+  const craft   = Math.max(1, parseInt(document.getElementById('calc_craft').value) || 1);
+  const base    = PRICES[billing][tier] || 0;
+  const extra   = Math.max(0, craft - 1) * EXTRA[billing];
+  const sub     = base + extra;
+  const disc    = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
+  const total   = sub - disc;
 
   const result = document.getElementById('calc_result');
   result.textContent = '';
@@ -220,17 +382,53 @@ function calcUpdate() {
     result.appendChild(d);
   }
 
-  addLine('Plan: ' + TIER_LABELS[tier], 'small text-muted mb-1');
-  addLine('Base price: ' + fmtMoney(base), 'small text-muted');
-  if (craft > 1) addLine((craft - 1) + ' additional craft x ' + fmtMoney(EXTRA) + ': ' + fmtMoney(extra), 'small text-muted');
+  const period = billing === 'monthly' ? '/mo' : '/yr';
+  addLine('Plan: ' + TIER_LABELS[tier] + ' — ' + (billing === 'monthly' ? 'Monthly' : 'Annual'), 'small text-muted mb-1');
+  addLine('Base price: ' + fmtMoney(base) + period, 'small text-muted');
+  if (craft > 1) addLine((craft - 1) + ' additional craft × ' + fmtMoney(EXTRA[billing]) + period + ': ' + fmtMoney(extra) + period, 'small text-muted');
   if (IS_EB && disc > 0) addLine('Early Bird discount (' + EB_PCT + '% off): -' + fmtMoney(disc), 'small text-success');
-  addLine('First year total: ' + fmtMoney(total), 'mt-2 fw-bold fs-5');
-  if (IS_EB) addLine('Renews at ' + fmtMoney(sub) + '/yr after first year', 'small text-muted');
+
+  const totalLabel = billing === 'annual' ? 'Annual total' : 'Monthly total';
+  addLine(totalLabel + ': ' + fmtMoney(total) + period, 'mt-2 fw-bold fs-5');
+
+  if (billing === 'annual') {
+    if (IS_EB) addLine('Renews at ' + fmtMoney(sub) + '/yr after first year (price locked for {{ price_guarantee_years }} yrs)', 'small text-muted');
+    else addLine('Price locked for {{ price_guarantee_years }} years — guaranteed rate', 'small text-success');
+  }
   if (tier === 'custom') addLine('+ domain registration (~$15-20/yr, paid separately)', 'small text-muted mt-1');
 
-  document.getElementById('calc_cta').href = '/order?tier=' + tier + '&craft=' + craft;
+  document.getElementById('calc_cta').href = '/order?tier=' + tier + '&billing=' + billing + '&craft=' + craft;
 }
 
+// Sync plan card toggle with the billing toggle
+function syncBillingDisplay(billing) {
+  document.querySelectorAll('.price-block-annual').forEach(el => el.style.display = billing === 'annual' ? '' : 'none');
+  document.querySelectorAll('.price-block-monthly').forEach(el => el.style.display = billing === 'monthly' ? '' : 'none');
+  document.querySelectorAll('.extra-annual').forEach(el => el.style.display = billing === 'annual' ? '' : 'none');
+  document.querySelectorAll('.extra-monthly').forEach(el => el.style.display = billing === 'monthly' ? '' : 'none');
+  const gr = document.getElementById('guarantee_row');
+  if (gr) gr.style.display = billing === 'annual' ? '' : 'none';
+  const sub = document.getElementById('billing_sub');
+  if (sub) {
+    sub.innerHTML = billing === 'annual'
+      ? 'Annual plans include a <strong>{{ price_guarantee_years }}-year price guarantee</strong> — your rate never increases.'
+      : 'Monthly billing — flexible, cancel any time. No price guarantee.';
+  }
+  // sync calc radios
+  const calcRadio = document.querySelector('input[name="calc_billing"][value="' + billing + '"]');
+  if (calcRadio) calcRadio.checked = true;
+}
+
+document.querySelectorAll('input[name="billing_mode"]').forEach(r => r.addEventListener('change', function() {
+  syncBillingDisplay(this.value);
+  calcUpdate();
+}));
+document.querySelectorAll('input[name="calc_billing"]').forEach(r => r.addEventListener('change', function() {
+  const bm = document.querySelector('input[name="billing_mode"][value="' + this.value + '"]');
+  if (bm) bm.checked = true;
+  syncBillingDisplay(this.value);
+  calcUpdate();
+}));
 document.querySelectorAll('input[name="calc_tier"]').forEach(r => r.addEventListener('change', calcUpdate));
 document.getElementById('calc_craft').addEventListener('input', calcUpdate);
 calcUpdate();

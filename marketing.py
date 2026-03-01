@@ -26,13 +26,29 @@ bp = Blueprint("marketing", __name__, template_folder="templates/marketing")
 # ---------------------------------------------------------------------------
 # Pricing constants (cents)
 # ---------------------------------------------------------------------------
-TIER_PRICES = {
-    "path":      3500,   # $35.00/yr — fleetnests.com/clubname
-    "subdomain": 4500,   # $45.00/yr — clubname.fleetnests.com
-    "custom":    5500,   # $55.00/yr — clubname.com (+ domain separately)
+
+# Monthly pricing
+BASE_MONTHLY        =  600   # $6/mo
+CRAFT_MONTHLY       =  400   # $4/mo per craft
+URL_MONTHLY = {
+    "path":      0,           # included
+    "subdomain": 300,         # +$3/mo
+    "custom":    700,         # +$7/mo
 }
-EXTRA_CRAFT_CENTS = 1250   # $12.50/yr each beyond first
-EARLY_BIRD_PCT    = 40     # 40% off first year
+
+# Annual pricing
+BASE_ANNUAL         = 6000   # $60/yr
+CRAFT_ANNUAL        = 3900   # $39/yr per craft
+URL_ANNUAL = {
+    "path":      0,           # included
+    "subdomain": 2500,        # +$25/yr
+    "custom":    6500,        # +$65/yr
+}
+
+# 5-year price guarantee applies to annual subscribers only
+PRICE_GUARANTEE_YEARS = 5
+
+EARLY_BIRD_PCT    = 40
 EARLY_BIRD_DEADLINE = date.fromisoformat(
     os.environ.get("EARLY_BIRD_DEADLINE", "2026-07-04")
 )
@@ -42,11 +58,12 @@ def _is_early_bird() -> bool:
     return date.today() <= EARLY_BIRD_DEADLINE
 
 
-def _calc_price(tier: str, craft_count: int, early_bird: bool) -> int:
-    """Return total in cents for first-year subscription."""
-    base  = TIER_PRICES.get(tier, TIER_PRICES["path"])
-    extra = max(0, craft_count - 1) * EXTRA_CRAFT_CENTS
-    total = base + extra
+def _calc_price(url_tier: str, craft_count: int, billing: str, early_bird: bool) -> int:
+    """Return total in cents. billing = 'monthly' | 'annual'."""
+    if billing == "monthly":
+        total = BASE_MONTHLY + craft_count * CRAFT_MONTHLY + URL_MONTHLY.get(url_tier, 0)
+    else:
+        total = BASE_ANNUAL + craft_count * CRAFT_ANNUAL + URL_ANNUAL.get(url_tier, 0)
     if early_bird:
         total = round(total * (1 - EARLY_BIRD_PCT / 100))
     return total
@@ -67,16 +84,25 @@ def require_marketing():
 # path-based club routing (/sample1/ → Flask "/") doesn't conflict.
 # ---------------------------------------------------------------------------
 
-def render_index():
-    early_bird = _is_early_bird()
-    return render_template(
-        "marketing/index.html",
+def _pricing_ctx(early_bird: bool) -> dict:
+    """Context vars shared by index, pricing, and order pages."""
+    return dict(
         early_bird=early_bird,
         early_bird_deadline=EARLY_BIRD_DEADLINE.strftime("%B %-d, %Y"),
-        tier_prices=TIER_PRICES,
-        extra_craft_cents=EXTRA_CRAFT_CENTS,
         early_bird_pct=EARLY_BIRD_PCT,
+        base_monthly=BASE_MONTHLY,
+        craft_monthly=CRAFT_MONTHLY,
+        url_monthly=URL_MONTHLY,
+        base_annual=BASE_ANNUAL,
+        craft_annual=CRAFT_ANNUAL,
+        url_annual=URL_ANNUAL,
+        price_guarantee_years=PRICE_GUARANTEE_YEARS,
     )
+
+
+def render_index():
+    early_bird = _is_early_bird()
+    return render_template("marketing/index.html", **_pricing_ctx(early_bird))
 
 
 # ---------------------------------------------------------------------------
@@ -87,14 +113,7 @@ def render_index():
 @bp.route("/pricing")
 def pricing():
     early_bird = _is_early_bird()
-    return render_template(
-        "pricing.html",
-        early_bird=early_bird,
-        early_bird_deadline=EARLY_BIRD_DEADLINE.strftime("%B %-d, %Y"),
-        tier_prices=TIER_PRICES,
-        extra_craft_cents=EXTRA_CRAFT_CENTS,
-        early_bird_pct=EARLY_BIRD_PCT,
-    )
+    return render_template("pricing.html", **_pricing_ctx(early_bird))
 
 
 @bp.route("/order")
@@ -102,20 +121,20 @@ def order_form():
     early_bird = _is_early_bird()
     tier       = request.args.get("tier", "subdomain")
     craft      = max(1, int(request.args.get("craft", 1)))
-    amount     = _calc_price(tier, craft, early_bird)
-    return render_template(
-        "order.html",
-        early_bird=early_bird,
-        early_bird_deadline=EARLY_BIRD_DEADLINE.strftime("%B %-d, %Y"),
-        tier_prices=TIER_PRICES,
-        extra_craft_cents=EXTRA_CRAFT_CENTS,
-        early_bird_pct=EARLY_BIRD_PCT,
+    billing    = request.args.get("billing", "annual")
+    if billing not in ("monthly", "annual"):
+        billing = "annual"
+    amount = _calc_price(tier, craft, billing, early_bird)
+    ctx = _pricing_ctx(early_bird)
+    ctx.update(
         selected_tier=tier,
         selected_craft=craft,
+        selected_billing=billing,
         initial_amount=amount,
         stripe_public_key=os.environ.get("STRIPE_PUBLIC_KEY", ""),
         paypal_client_id=os.environ.get("PAYPAL_CLIENT_ID", ""),
     )
+    return render_template("order.html", **ctx)
 
 
 @bp.route("/order/stripe", methods=["POST"])
@@ -130,13 +149,16 @@ def stripe_checkout():
 
     tier        = request.form.get("tier", "subdomain")
     craft_count = max(1, int(request.form.get("craft_count", 1)))
+    billing     = request.form.get("billing", "annual")
+    if billing not in ("monthly", "annual"):
+        billing = "annual"
     club_name   = request.form.get("club_name", "").strip()
     contact     = request.form.get("contact_name", "").strip()
     email       = request.form.get("contact_email", "").strip()
     domain      = request.form.get("custom_domain", "").strip() or None
     notes       = request.form.get("notes", "").strip() or None
     early_bird  = _is_early_bird()
-    amount      = _calc_price(tier, craft_count, early_bird)
+    amount      = _calc_price(tier, craft_count, billing, early_bird)
 
     if not all([club_name, contact, email]):
         return redirect(url_for("marketing.order_form", tier=tier, craft=craft_count))
@@ -146,12 +168,13 @@ def stripe_checkout():
         club_name=club_name, contact_name=contact, contact_email=email,
         tier=tier, craft_count=craft_count, amount_cents=amount,
         early_bird=early_bird, is_trial=False,
-        custom_domain=domain, notes=notes,
+        billing=billing, custom_domain=domain, notes=notes,
     )
 
     tier_labels = {"path": "Shared Path", "subdomain": "Subdomain", "custom": "Custom Domain"}
+    bill_label  = "monthly" if billing == "monthly" else "annual"
     description = (
-        f"FleetNests {tier_labels.get(tier, tier)} plan — {craft_count} craft"
+        f"FleetNests {tier_labels.get(tier, tier)} plan ({bill_label}) — {craft_count} craft"
         + (" (Early Bird 40% off)" if early_bird else "")
     )
 
@@ -190,8 +213,11 @@ def paypal_create():
     data = request.get_json() or {}
     tier        = data.get("tier", "subdomain")
     craft_count = max(1, int(data.get("craft_count", 1)))
+    billing     = data.get("billing", "annual")
+    if billing not in ("monthly", "annual"):
+        billing = "annual"
     early_bird  = _is_early_bird()
-    amount      = _calc_price(tier, craft_count, early_bird)
+    amount      = _calc_price(tier, craft_count, billing, early_bird)
     amount_str  = f"{amount / 100:.2f}"
 
     token = _paypal_access_token()
@@ -219,7 +245,7 @@ def paypal_create():
     paypal_order_id = resp.json().get("id")
     # Stash enough info in session so /capture can persist the order
     session["paypal_pending"] = {
-        "tier": tier, "craft_count": craft_count,
+        "tier": tier, "craft_count": craft_count, "billing": billing,
         "amount_cents": amount, "early_bird": early_bird,
         "paypal_order_id": paypal_order_id,
     }
@@ -240,6 +266,7 @@ def paypal_capture():
     pending = session.get("paypal_pending", {})
     tier        = pending.get("tier", "subdomain")
     craft_count = pending.get("craft_count", 1)
+    billing     = pending.get("billing", "annual")
     amount      = pending.get("amount_cents", 0)
     early_bird  = pending.get("early_bird", False)
 
@@ -262,7 +289,7 @@ def paypal_capture():
         club_name=club_name, contact_name=contact, contact_email=email,
         tier=tier, craft_count=craft_count, amount_cents=amount,
         early_bird=early_bird, is_trial=False,
-        custom_domain=domain, notes=notes,
+        billing=billing, custom_domain=domain, notes=notes,
     )
     master_db.update_order_payment(order_id, "paypal", paypal_order_id, "paid")
     session["confirmed_order_id"] = order_id

@@ -31,9 +31,25 @@
       <div class="order-card p-4">
         <h5 class="fw-bold mb-4">Your club details</h5>
 
+        {# Billing period #}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Billing period</label>
+          <div class="d-flex flex-wrap gap-2">
+            <input type="radio" class="btn-check" name="billing" id="bill_annual" value="annual"
+                   {% if selected_billing != 'monthly' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="bill_annual">
+              Annual <span class="text-success small">(save 17% + {{ price_guarantee_years }}-yr price lock)</span>
+            </label>
+            <input type="radio" class="btn-check" name="billing" id="bill_monthly" value="monthly"
+                   {% if selected_billing == 'monthly' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary btn-sm" for="bill_monthly">Monthly</label>
+          </div>
+          <div class="form-text" id="billing_hint">Annual plans lock your price for {{ price_guarantee_years }} years.</div>
+        </div>
+
         {# Tier selector #}
         <div class="mb-3">
-          <label class="form-label fw-semibold">Plan</label>
+          <label class="form-label fw-semibold">URL plan</label>
           <div class="d-flex flex-wrap gap-2">
             <input type="radio" class="btn-check" name="tier" id="tier_path" value="path"
                    {% if selected_tier == 'path' %}checked{% endif %}>
@@ -53,7 +69,7 @@
           <label class="form-label fw-semibold" for="craft_count">Number of craft in fleet</label>
           <input type="number" id="craft_count" class="form-control" style="max-width:120px"
                  min="1" max="50" value="{{ selected_craft }}">
-          <div class="form-text">First craft included; +$12.50/yr each additional{% if early_bird %} (Early Bird: +$7.50/yr){% endif %}</div>
+          <div class="form-text" id="craft_hint">First craft included in base price</div>
         </div>
 
         <hr class="my-4">
@@ -127,6 +143,7 @@
         {# Hidden form for Stripe POST #}
         <form id="stripe_form" method="post" action="{{ url_for('marketing.stripe_checkout') }}" style="display:none">
           <input type="hidden" name="tier" id="f_tier">
+          <input type="hidden" name="billing" id="f_billing">
           <input type="hidden" name="craft_count" id="f_craft">
           <input type="hidden" name="club_name" id="f_club">
           <input type="hidden" name="contact_name" id="f_contact">
@@ -151,6 +168,9 @@
         <hr>
         <div id="summary_total" class="d-flex justify-content-between fw-bold fs-5"></div>
         <div id="summary_renew" class="text-muted small mt-1"></div>
+        <div id="summary_guarantee" class="text-success small mt-1" style="display:none">
+          <i class="bi bi-patch-check-fill me-1"></i>{{ price_guarantee_years }}-year price guarantee — your rate is locked.
+        </div>
         {% if early_bird %}
         <div class="alert alert-warning small py-2 mt-3 mb-0">
           <i class="bi bi-lightning-charge-fill me-1"></i>
@@ -160,7 +180,7 @@
         <hr>
         <div class="small text-muted">
           <i class="bi bi-shield-check me-1 text-success"></i>Secure payment via Stripe or PayPal<br>
-          <i class="bi bi-arrow-clockwise me-1"></i>Renews annually — cancel any time<br>
+          <i class="bi bi-arrow-clockwise me-1"></i>Cancel any time<br>
           <i class="bi bi-envelope me-1"></i>Setup within 1 business day
         </div>
       </div>
@@ -175,8 +195,11 @@
 <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
 {% endif %}
 <script>
-const PRICES = { path: {{ tier_prices.path }}, subdomain: {{ tier_prices.subdomain }}, custom: {{ tier_prices.custom }} };
-const EXTRA = {{ extra_craft_cents }};
+const PRICES = {
+  monthly: { path: {{ base_monthly + url_monthly.path }}, subdomain: {{ base_monthly + url_monthly.subdomain }}, custom: {{ base_monthly + url_monthly.custom }} },
+  annual:  { path: {{ base_annual  + url_annual.path  }}, subdomain: {{ base_annual  + url_annual.subdomain  }}, custom: {{ base_annual  + url_annual.custom  }} },
+};
+const EXTRA = { monthly: {{ craft_monthly }}, annual: {{ craft_annual }} };
 const EB_PCT = {{ early_bird_pct }};
 const IS_EB = {{ 'true' if early_bird else 'false' }};
 const TIER_DESCS = {
@@ -192,17 +215,19 @@ let paypalRendered = false;
 function fmtMoney(cents) { return '$' + (cents / 100).toFixed(2); }
 
 function calcTotal() {
-  const tier = document.querySelector('input[name="tier"]:checked')?.value || 'subdomain';
-  const craft = Math.max(1, parseInt(document.getElementById('craft_count').value) || 1);
-  const base = PRICES[tier] || 0;
-  const extra = Math.max(0, craft - 1) * EXTRA;
-  const sub = base + extra;
-  const disc = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
-  return { tier, craft, base, extra, sub, disc, total: sub - disc };
+  const billing = document.querySelector('input[name="billing"]:checked')?.value || 'annual';
+  const tier    = document.querySelector('input[name="tier"]:checked')?.value || 'subdomain';
+  const craft   = Math.max(1, parseInt(document.getElementById('craft_count').value) || 1);
+  const base    = PRICES[billing][tier] || 0;
+  const extra   = Math.max(0, craft - 1) * EXTRA[billing];
+  const sub     = base + extra;
+  const disc    = IS_EB ? Math.round(sub * EB_PCT / 100) : 0;
+  return { billing, tier, craft, base, extra, sub, disc, total: sub - disc };
 }
 
 function updateSummary() {
-  const { tier, craft, base, extra, sub, disc, total } = calcTotal();
+  const { billing, tier, craft, base, extra, sub, disc, total } = calcTotal();
+  const period = billing === 'monthly' ? '/mo' : '/yr';
 
   function setText(id, label, val) {
     const el = document.getElementById(id);
@@ -214,16 +239,48 @@ function updateSummary() {
     const v = document.createElement('span'); v.textContent = val; el.appendChild(v);
   }
 
-  document.getElementById('summary_plan').textContent = TIER_LABELS[tier] + ' Plan';
-  document.getElementById('summary_craft').textContent = craft + ' craft' + (craft > 1 ? ' (' + (craft-1) + ' additional)' : ' (included)');
+  document.getElementById('summary_plan').textContent =
+    TIER_LABELS[tier] + ' Plan — ' + (billing === 'monthly' ? 'Monthly' : 'Annual');
+  document.getElementById('summary_craft').textContent =
+    craft + ' craft' + (craft > 1 ? ' (' + (craft-1) + ' additional)' : ' (included)');
 
-  setText('summary_base', 'Base plan', fmtMoney(base));
-  if (extra > 0) { setText('summary_extra', 'Additional craft', fmtMoney(extra)); }
+  setText('summary_base', 'Base plan', fmtMoney(base) + period);
+  if (extra > 0) { setText('summary_extra', 'Additional craft', fmtMoney(extra) + period); }
   else { const el = document.getElementById('summary_extra'); if(el) el.textContent = ''; }
   if (disc > 0) { setText('summary_disc', 'Early Bird (40% off)', '-' + fmtMoney(disc)); }
   else { const el = document.getElementById('summary_disc'); if(el) el.textContent = ''; }
-  setText('summary_total', 'First year', fmtMoney(total));
-  document.getElementById('summary_renew').textContent = 'Renews at ' + fmtMoney(sub) + '/yr';
+
+  const totalLabel = billing === 'annual' ? 'Annual total' : 'Monthly total';
+  setText('summary_total', totalLabel, fmtMoney(total) + period);
+
+  const renewEl = document.getElementById('summary_renew');
+  const guarEl  = document.getElementById('summary_guarantee');
+  if (billing === 'annual') {
+    if (IS_EB) {
+      renewEl.textContent = 'Renews at ' + fmtMoney(sub) + '/yr after first year';
+    } else {
+      renewEl.textContent = 'Renews at ' + fmtMoney(sub) + '/yr';
+    }
+    if (guarEl) guarEl.style.display = '';
+  } else {
+    renewEl.textContent = 'Billed monthly — cancel any time';
+    if (guarEl) guarEl.style.display = 'none';
+  }
+
+  // Craft hint
+  const craftHint = document.getElementById('craft_hint');
+  if (craftHint) {
+    craftHint.textContent = 'First craft included; +' + fmtMoney(EXTRA[billing]) + period + ' each additional'
+      + (IS_EB ? ' (Early Bird rate)' : '');
+  }
+
+  // Billing hint
+  const billHint = document.getElementById('billing_hint');
+  if (billHint) {
+    billHint.textContent = billing === 'annual'
+      ? 'Annual plans lock your price for {{ price_guarantee_years }} years.'
+      : 'Monthly billing — flexible, no long-term commitment.';
+  }
 
   // URL preview
   const slug = document.getElementById('club_name').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
@@ -255,21 +312,21 @@ function selectPay(method) {
     paypalRendered = true;
     paypal.Buttons({
       createOrder: function() {
-        const { tier, craft } = calcTotal();
+        const { billing, tier, craft } = calcTotal();
         return fetch('/order/paypal/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier, craft_count: craft }),
+          body: JSON.stringify({ tier, billing, craft_count: craft }),
         }).then(r => r.json()).then(d => d.id);
       },
       onApprove: function(data) {
-        const { tier, craft } = calcTotal();
+        const { billing, tier, craft } = calcTotal();
         return fetch('/order/paypal/capture', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             orderID: data.orderID,
-            tier, craft_count: craft,
+            tier, billing, craft_count: craft,
             club_name: document.getElementById('club_name').value,
             contact_name: document.getElementById('contact_name').value,
             contact_email: document.getElementById('contact_email').value,
@@ -284,7 +341,7 @@ function selectPay(method) {
 }
 
 function stripeCheckout() {
-  const { tier, craft } = calcTotal();
+  const { billing, tier, craft } = calcTotal();
   const club = document.getElementById('club_name').value.trim();
   const contact = document.getElementById('contact_name').value.trim();
   const email = document.getElementById('contact_email').value.trim();
@@ -293,6 +350,7 @@ function stripeCheckout() {
     return;
   }
   document.getElementById('f_tier').value    = tier;
+  document.getElementById('f_billing').value = billing;
   document.getElementById('f_craft').value   = craft;
   document.getElementById('f_club').value    = club;
   document.getElementById('f_contact').value = contact;
@@ -303,6 +361,7 @@ function stripeCheckout() {
 }
 
 // Wire up live updates
+document.querySelectorAll('input[name="billing"]').forEach(r => r.addEventListener('change', updateSummary));
 document.querySelectorAll('input[name="tier"]').forEach(r => r.addEventListener('change', updateSummary));
 document.getElementById('craft_count').addEventListener('input', updateSummary);
 document.getElementById('club_name').addEventListener('input', updateSummary);

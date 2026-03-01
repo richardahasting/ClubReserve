@@ -173,68 +173,71 @@
     <div class="row g-4 justify-content-center">
 
       {# Path plan #}
-      {% set base = tier_prices.path %}
-      {% set eb_price = (base * 0.6) | round | int %}
+      {% set ann = base_annual + url_annual.path %}
+      {% set ann_eb = (ann * (1 - early_bird_pct/100)) | round | int %}
       <div class="col-md-4">
         <div class="tier-card p-4 h-100 bg-white">
           <div class="fw-semibold text-muted small mb-1">STARTER</div>
           <h3 class="fn-brand fw-bold mb-0">
-            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(ann/100) }}</span>${{ "%.0f" | format(ann_eb/100) }}{% else %}${{ "%.0f" | format(ann/100) }}{% endif %}
             <span class="fs-6 fw-normal text-muted">/yr</span>
           </h3>
+          <div class="text-muted small mb-1">or ${{ "%.0f" | format((base_monthly + url_monthly.path)/100) }}/mo</div>
           <div class="text-muted small mb-3">fleetnests.com/<em>yourclub</em></div>
           <ul class="list-unstyled small mb-4">
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Full reservation system</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Maintenance tracking</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Custom branding &amp; colors</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(craft_annual/100) }}/yr per extra craft</li>
           </ul>
           <a href="{{ url_for('marketing.order_form', tier='path') }}" class="btn btn-outline-secondary w-100">Get Started</a>
         </div>
       </div>
 
       {# Subdomain plan — popular #}
-      {% set base = tier_prices.subdomain %}
-      {% set eb_price = (base * 0.6) | round | int %}
+      {% set ann = base_annual + url_annual.subdomain %}
+      {% set ann_eb = (ann * (1 - early_bird_pct/100)) | round | int %}
       <div class="col-md-4">
         <div class="tier-card popular p-4 h-100 bg-white position-relative">
           <span class="badge position-absolute top-0 start-50 translate-middle px-3 py-2"
                 style="background:var(--fn-gold);font-size:.75rem">Most Popular</span>
           <div class="fw-semibold text-muted small mb-1 mt-2">PROFESSIONAL</div>
           <h3 class="fn-brand fw-bold mb-0">
-            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(ann/100) }}</span>${{ "%.0f" | format(ann_eb/100) }}{% else %}${{ "%.0f" | format(ann/100) }}{% endif %}
             <span class="fs-6 fw-normal text-muted">/yr</span>
           </h3>
+          <div class="text-muted small mb-1">or ${{ "%.0f" | format((base_monthly + url_monthly.subdomain)/100) }}/mo</div>
           <div class="text-muted small mb-3"><em>yourclub</em>.fleetnests.com</div>
           <ul class="list-unstyled small mb-4">
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Starter</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Your own subdomain</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Cleaner member-facing URL</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(craft_annual/100) }}/yr per extra craft</li>
           </ul>
           <a href="{{ url_for('marketing.order_form', tier='subdomain') }}" class="btn btn-gold w-100">Get Started</a>
         </div>
       </div>
 
       {# Custom domain #}
-      {% set base = tier_prices.custom %}
-      {% set eb_price = (base * 0.6) | round | int %}
+      {% set ann = base_annual + url_annual.custom %}
+      {% set ann_eb = (ann * (1 - early_bird_pct/100)) | round | int %}
       <div class="col-md-4">
         <div class="tier-card p-4 h-100 bg-white">
           <div class="fw-semibold text-muted small mb-1">PREMIUM</div>
           <h3 class="fn-brand fw-bold mb-0">
-            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(base/100) }}</span>${{ "%.0f" | format(eb_price/100) }}{% else %}${{ "%.0f" | format(base/100) }}{% endif %}
+            {% if early_bird %}<span class="text-decoration-line-through text-muted me-2 fs-5">${{ "%.0f" | format(ann/100) }}</span>${{ "%.0f" | format(ann_eb/100) }}{% else %}${{ "%.0f" | format(ann/100) }}{% endif %}
             <span class="fs-6 fw-normal text-muted">/yr + domain</span>
           </h3>
+          <div class="text-muted small mb-1">or ${{ "%.0f" | format((base_monthly + url_monthly.custom)/100) }}/mo</div>
           <div class="text-muted small mb-3"><em>yourclub</em>.com (or any domain)</div>
           <ul class="list-unstyled small mb-4">
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Everything in Professional</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Your own custom domain</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>Fully branded experience</li>
             <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i>1 craft included</li>
-            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+$12.50/yr per extra craft</li>
+            <li class="text-muted mb-1"><i class="bi bi-plus-circle me-2"></i>+${{ "%.2f" | format(craft_annual/100) }}/yr per extra craft</li>
           </ul>
           <a href="{{ url_for('marketing.order_form', tier='custom') }}" class="btn btn-outline-secondary w-100">Get Started</a>
         </div>

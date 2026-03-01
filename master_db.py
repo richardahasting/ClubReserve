@@ -73,6 +73,10 @@ def get_club_by_short_name(short_name: str) -> dict | None:
     )
 
 
+def get_club_by_id(club_id: int) -> dict | None:
+    return _fetchone("SELECT * FROM clubs WHERE id=%s", (club_id,))
+
+
 def get_all_clubs() -> list:
     return _execute("SELECT * FROM clubs ORDER BY name")
 
@@ -191,15 +195,16 @@ def save_demo_lead(email: str, club_short_name: str, club_name: str,
 def create_order(club_name: str, contact_name: str, contact_email: str,
                  tier: str, craft_count: int, amount_cents: int,
                  early_bird: bool, is_trial: bool,
+                 billing: str = "annual",
                  custom_domain: str = None, notes: str = None) -> int:
     """Insert a new order/trial record. Returns the new order id."""
     row = _insert(
         "INSERT INTO orders "
         "(club_name, contact_name, contact_email, tier, craft_count, amount_cents, "
-        " early_bird, is_trial, custom_domain, notes) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+        " early_bird, is_trial, billing, custom_domain, notes) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
         (club_name, contact_name, contact_email, tier, craft_count, amount_cents,
-         early_bird, is_trial, custom_domain, notes),
+         early_bird, is_trial, billing, custom_domain, notes),
     )
     return row["id"] if row else None
 
@@ -223,6 +228,57 @@ def get_order_by_payment_id(payment_id: str) -> dict | None:
 
 def get_all_orders() -> list:
     return _execute("SELECT * FROM orders ORDER BY created_at DESC")
+
+
+def get_pending_orders_for_club(club_name: str) -> list:
+    """Return paid, unprovisioned orders whose club_name matches (case-insensitive)."""
+    return _execute(
+        "SELECT * FROM orders WHERE status='paid' AND is_trial=FALSE "
+        "AND LOWER(club_name)=LOWER(%s) ORDER BY created_at DESC",
+        (club_name,),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Subscriptions
+# ---------------------------------------------------------------------------
+
+def upsert_subscription(club_id: int, billing: str, amount_cents: int,
+                        price_locked_until, renewal_date,
+                        plan_tier: str = "standard",
+                        order_id: int = None) -> int:
+    """Create or update the subscription record for a club. Returns subscription id."""
+    existing = get_subscription_by_club_id(club_id)
+    if existing:
+        _execute(
+            "UPDATE subscriptions SET billing=%s, amount_cents=%s, price_locked_until=%s, "
+            "renewal_date=%s, plan_tier=%s, order_id=COALESCE(%s, order_id), is_active=TRUE "
+            "WHERE club_id=%s",
+            (billing, amount_cents, price_locked_until, renewal_date,
+             plan_tier, order_id, club_id),
+            fetch=False,
+        )
+        return existing["id"]
+    row = _insert(
+        "INSERT INTO subscriptions "
+        "(club_id, billing, amount_cents, price_locked_until, renewal_date, plan_tier, order_id) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+        (club_id, billing, amount_cents, price_locked_until, renewal_date, plan_tier, order_id),
+    )
+    return row["id"] if row else None
+
+
+def get_subscription_by_club_id(club_id: int) -> dict | None:
+    return _fetchone("SELECT * FROM subscriptions WHERE club_id=%s", (club_id,))
+
+
+def get_all_subscriptions_with_clubs() -> list:
+    """Join subscriptions with clubs for the superadmin overview."""
+    return _execute(
+        "SELECT s.*, c.name AS club_name, c.short_name, c.contact_email "
+        "FROM subscriptions s JOIN clubs c ON c.id = s.club_id "
+        "ORDER BY s.price_locked_until ASC NULLS LAST, c.name"
+    )
 
 
 def get_demo_leads(club_short_name: str = None) -> list:

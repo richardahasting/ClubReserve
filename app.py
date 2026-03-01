@@ -53,6 +53,7 @@ def create_app():
     # Make current_user and club context available in all templates
     @app.context_processor
     def inject_context():
+        from datetime import datetime as _dt
         club = getattr(g, "club", None)
         vtype = getattr(g, "vehicle_type", "boat")
         settings = {}
@@ -76,6 +77,7 @@ def create_app():
             "is_plane":       vtype == "plane",
             "club_settings":  settings,
             "branding":       branding,
+            "now":            _dt.now(),
         }
 
     # Custom error pages
@@ -1677,7 +1679,9 @@ def register_superadmin_routes(app: Flask):
     def superadmin_dashboard():
         import master_db as mdb
         clubs = mdb.get_all_clubs()
-        return render_template("superadmin/dashboard.html", clubs=clubs)
+        # Build a lookup: club_id → subscription row
+        subs_by_club = {s["club_id"]: s for s in (mdb.get_all_subscriptions_with_clubs() or [])}
+        return render_template("superadmin/dashboard.html", clubs=clubs, subs_by_club=subs_by_club)
 
     @app.route("/superadmin/clubs/new", methods=["GET", "POST"])
     @auth.superadmin_required
@@ -1714,6 +1718,76 @@ def register_superadmin_routes(app: Flask):
                     flash(f"Provisioning failed: {exc}", "danger")
 
         return render_template("superadmin/new_club.html")
+
+    @app.route("/superadmin/clubs/<int:club_id>", methods=["GET", "POST"])
+    @auth.superadmin_required
+    def superadmin_club_detail(club_id: int):
+        import master_db as mdb
+        from datetime import date, timedelta
+        club = mdb.get_club_by_id(club_id)
+        if not club:
+            flash("Club not found.", "danger")
+            return redirect(url_for("superadmin_dashboard"))
+
+        sub  = mdb.get_subscription_by_club_id(club_id)
+        # Look for paid orders that match this club's name
+        pending_orders = mdb.get_pending_orders_for_club(club["name"])
+
+        if request.method == "POST":
+            action = request.form.get("action")
+
+            if action == "save_subscription":
+                billing       = request.form.get("billing", "annual")
+                amount_str    = request.form.get("amount_cents", "0").replace("$", "").strip()
+                try:
+                    amount_cents = int(float(amount_str) * 100)
+                except ValueError:
+                    amount_cents = 0
+
+                locked_until_str = request.form.get("price_locked_until", "").strip()
+                locked_until = None
+                if locked_until_str:
+                    try:
+                        locked_until = date.fromisoformat(locked_until_str)
+                    except ValueError:
+                        pass
+
+                renewal_str = request.form.get("renewal_date", "").strip()
+                renewal = None
+                if renewal_str:
+                    try:
+                        renewal = date.fromisoformat(renewal_str)
+                    except ValueError:
+                        pass
+                if renewal is None:
+                    renewal = date.today() + timedelta(days=365)
+
+                order_id_str = request.form.get("order_id", "").strip()
+                order_id = int(order_id_str) if order_id_str.isdigit() else None
+
+                mdb.upsert_subscription(
+                    club_id=club_id,
+                    billing=billing,
+                    amount_cents=amount_cents,
+                    price_locked_until=locked_until,
+                    renewal_date=renewal,
+                    order_id=order_id,
+                )
+                mdb.log_master_action(
+                    auth.current_super_admin()["id"],
+                    "subscription_updated", "club", club_id,
+                    {"billing": billing, "amount_cents": amount_cents,
+                     "price_locked_until": str(locked_until)},
+                )
+                flash("Subscription updated.", "success")
+                return redirect(url_for("superadmin_club_detail", club_id=club_id))
+
+        return render_template(
+            "superadmin/club_detail.html",
+            club=club,
+            sub=sub,
+            pending_orders=pending_orders,
+        )
 
     @app.route("/superadmin/clubs/<int:club_id>/deactivate", methods=["POST"])
     @auth.superadmin_required
