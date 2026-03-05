@@ -1432,6 +1432,19 @@ def register_routes(app: Flask):
         import feedback as fb
 
         user = auth.current_user()
+
+        # On demo/sample sites the logged-in user is a placeholder; collect real identity.
+        club = getattr(g, "club", None)
+        if club and club.get("short_name") in DEMO_CLUBS:
+            real_name  = request.form.get("real_name", "").strip()
+            real_email = request.form.get("real_email", "").strip().lower()
+            if not real_name or not real_email or "@" not in real_email:
+                return jsonify({"ok": False,
+                                "error": "Please enter your name and email address."}), 400
+            user = dict(user)
+            user["full_name"] = real_name
+            user["email"]     = real_email
+
         text = request.form.get("feedback_text", "").strip()
         if not text:
             return jsonify({"ok": False, "error": "Feedback text is required."}), 400
@@ -1462,6 +1475,45 @@ def register_routes(app: Flask):
         models.log_action(user["id"], "feedback_submitted", None, None,
                           {"action": action, "length": len(text)})
         return jsonify({"ok": True, "action": action})
+
+    @app.route("/github-webhook", methods=["POST"])
+    def github_webhook():
+        """Receive GitHub issue events and notify submitters when issues are closed."""
+        import hashlib
+        import hmac
+        import re
+
+        secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+        if secret:
+            sig_header = request.headers.get("X-Hub-Signature-256", "")
+            expected   = "sha256=" + hmac.new(secret.encode(), request.data,
+                                              hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(sig_header, expected):
+                abort(403)
+
+        if request.headers.get("X-GitHub-Event") != "issues":
+            return "", 204
+
+        payload = request.get_json(silent=True) or {}
+        if payload.get("action") != "closed":
+            return "", 204
+
+        issue = payload.get("issue", {})
+        issue_title = issue.get("title", "your issue")
+        issue_url   = issue.get("html_url", "")
+        issue_body  = issue.get("body") or ""
+
+        # Extract submitter identity from the footer we embed in every issue.
+        match = re.search(r'\*\*Submitted by:\*\*\s+(.+?)\s+<([^>]+)>', issue_body)
+        if not match:
+            return "", 204
+
+        submitter_name  = match.group(1).strip()
+        submitter_email = match.group(2).strip()
+
+        email_notify.notify_feedback_resolved(
+            submitter_email, submitter_name, issue_title, issue_url)
+        return "", 204
 
 
 # ---------------------------------------------------------------------------
