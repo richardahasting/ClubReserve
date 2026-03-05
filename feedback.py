@@ -93,7 +93,7 @@ def process_feedback(
 
     if action == "github_issue":
         github_url, ok = _create_github_issue(result["title"], result["body"],
-                                               result.get("labels", []), saved_path)
+                                               result.get("labels", []), saved_path, user)
         if ok:
             return True, "github_issue", saved_path, github_url
         log.warning("GitHub issue creation failed; falling back to email for: %s", result["title"])
@@ -163,7 +163,8 @@ def _call_claude_cli(
 # ---------------------------------------------------------------------------
 
 def _create_github_issue(title: str, body: str, labels: list,
-                          saved_path: str | None) -> tuple[str | None, bool]:
+                          saved_path: str | None,
+                          user: dict | None = None) -> tuple[str | None, bool]:
     """Returns (issue_url, success)."""
     token = os.environ.get("GITHUB_TOKEN")
     repo  = os.environ.get("GITHUB_REPO", "richardahasting/fleetnests")
@@ -175,6 +176,10 @@ def _create_github_issue(title: str, body: str, labels: list,
     full_body = body
     if saved_path:
         full_body += f"\n\n**Attachment:** {app_url}/static/{saved_path}"
+    if user:
+        name  = user.get("full_name") or "Unknown"
+        email = user.get("email") or "no email on file"
+        full_body += f"\n\n---\n**Submitted by:** {name} <{email}>"
 
     payload = json.dumps({"title": title, "body": full_body, "labels": labels}).encode()
     url = f"https://api.github.com/repos/{repo}/issues"

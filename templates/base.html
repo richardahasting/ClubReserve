@@ -227,11 +227,30 @@
 
       <div class="modal-body">
         {# Default state: form #}
+        {% set is_demo_club = club and club.short_name in ('sample1', 'sample2') %}
         <div id="fbForm">
           <p class="text-muted small mb-3">
             <i class="bi bi-bug me-1"></i>Bugs &amp; feature requests → GitHub &nbsp;·&nbsp;
             <i class="bi bi-envelope me-1"></i>Everything else → email
           </p>
+          {% if is_demo_club %}
+          <div class="mb-3">
+            <label for="fbRealName" class="form-label fw-semibold">Your name</label>
+            <input type="text" id="fbRealName" class="form-control"
+                   placeholder="Jane Smith" autocomplete="name">
+          </div>
+          <div class="mb-3">
+            <label for="fbRealEmail" class="form-label fw-semibold">Your email</label>
+            <input type="email" id="fbRealEmail" class="form-control"
+                   placeholder="jane@example.com" autocomplete="email">
+          </div>
+          {% else %}
+          <p class="text-muted small mb-3">
+            <i class="bi bi-person me-1"></i>Submitting as
+            <strong>{{ current_user.full_name }}</strong>
+            ({{ current_user.email or current_user.username }})
+          </p>
+          {% endif %}
           <div class="mb-3">
             <label for="fbText" class="form-label fw-semibold">Your feedback</label>
             <textarea id="fbText" class="form-control" rows="5"
@@ -277,6 +296,8 @@
 
 <script>
 (function () {
+  var _fbIsDemo = {{ is_demo_club | tojson }};
+
   // Reset modal to default state on every open
   document.getElementById('feedbackModal').addEventListener('show.bs.modal', function () {
     document.getElementById('fbText').value = '';
@@ -287,6 +308,10 @@
     document.getElementById('fbForm').classList.remove('d-none');
     document.getElementById('fbSuccess').classList.add('d-none');
     document.getElementById('fbFooter').classList.remove('d-none');
+    if (_fbIsDemo) {
+      document.getElementById('fbRealName').value = '';
+      document.getElementById('fbRealEmail').value = '';
+    }
     _fbSetSending(false);
   });
 
@@ -301,9 +326,20 @@
   }
 
   window.submitFeedback = function () {
+    var banner = document.getElementById('fbErrorBanner');
     var text = document.getElementById('fbText').value.trim();
+
+    if (_fbIsDemo) {
+      var realName  = document.getElementById('fbRealName').value.trim();
+      var realEmail = document.getElementById('fbRealEmail').value.trim();
+      if (!realName || !realEmail || !realEmail.includes('@')) {
+        banner.textContent = 'Please enter your name and email address.';
+        banner.classList.remove('d-none');
+        return;
+      }
+    }
+
     if (!text) {
-      var banner = document.getElementById('fbErrorBanner');
       banner.textContent = 'Please enter your feedback before sending.';
       banner.classList.remove('d-none');
       return;
@@ -314,6 +350,10 @@
 
     var fd = new FormData();
     fd.append('feedback_text', text);
+    if (_fbIsDemo) {
+      fd.append('real_name',  realName);
+      fd.append('real_email', realEmail);
+    }
     var file = document.getElementById('fbScreenshot').files[0];
     if (file) fd.append('screenshot', file);
 

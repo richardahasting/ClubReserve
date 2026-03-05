@@ -293,6 +293,24 @@ def notify_club_provisioned(contact_email: str, club_name: str,
         return False
 
 
+def notify_feedback_resolved(to_email: str, submitter_name: str,
+                             issue_title: str, issue_url: str) -> bool:
+    """Email a member when the GitHub issue they filed has been closed."""
+    if not EMAIL_ENABLED or not to_email:
+        return False
+    ctx = _get_club_context()
+    return send_email(
+        to_email,
+        "Your feedback has been resolved",
+        f"Hi {submitter_name},\n\n"
+        f"The issue you reported has been closed:\n\n"
+        f"  {issue_title}\n"
+        f"  {issue_url}\n\n"
+        f"Thank you for helping us improve {ctx['club_name']}.\n\n"
+        f"{ctx['signature']}",
+    )
+
+
 def notify_demo_lead(prospect_email: str, club_name: str, club_short_name: str,
                      ip_address: str = None) -> bool:
     """Notify richard@hastingtx.org that a prospect accessed a sample site."""
